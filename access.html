@@ -1,66 +1,45 @@
 <!DOCTYPE html>
-<html lang="sq">
+<html>
 <head>
   <meta charset="UTF-8">
-  <title>Hyrja e Autorizuar</title>
+  <title>Kontroll Aksesi</title>
   <style>
-    body {
-      font-family: sans-serif;
-      text-align: center;
-      margin-top: 80px;
-      background: #f7f7f7;
-    }
-    input {
-      font-size: 18px;
-      padding: 10px;
-      width: 200px;
-      margin-top: 10px;
-    }
-    button {
-      font-size: 18px;
-      padding: 10px 20px;
-      margin-top: 10px;
-      cursor: pointer;
-    }
-    #status {
-      margin-top: 20px;
-      font-weight: bold;
-    }
+    body { font-family: sans-serif; text-align: center; margin-top: 100px; }
+    input { padding: 10px; font-size: 18px; }
+    button { padding: 10px 20px; font-size: 18px; margin-top: 10px; }
+    #status { margin-top: 20px; font-weight: bold; }
   </style>
 </head>
 <body>
-  <h2>Enter the code to open the door.</h2>
-  <input type="password" id="code" placeholder="Kodi i aksesit">
+  <h2>Vendos PIN për të hapur</h2>
+  <input type="password" id="pin" placeholder="Vendos PIN" />
   <br>
-  <button onclick="checkCode()">Open the door</button>
-  <p id="status"></p>
+  <button onclick="kontrollo()">Hap</button>
+  <div id="status"></div>
 
   <script>
-    const kodiSakt = "4567"; // 🔐 Change this to your secret code
-    const pajisjaURL = "http://192.168.4.1/open"; // 🔧 The IP or URL of the device controlling the door
+    const kodiSakt = "1234"; // ndryshoje me PIN-in tënd
+    const iftttUrl = "https://maker.ifttt.com/trigger/hap_dere/with/key/YOUR_IFTTT_KEY"; // vendos URL-në nga Webhooks
 
-    function checkCode() {
-      const inputCode = document.getElementById("code").value.trim();
-      const statusMsg = document.getElementById("status");
+    function kontrollo() {
+      const pin = document.getElementById("pin").value;
+      const status = document.getElementById("status");
 
-      if (inputCode === kodiSakt) {
-        fetch(pajisjaURL)
+      if (pin === kodiSakt) {
+        status.innerText = "✅ Duke dërguar komandën...";
+        fetch(iftttUrl)
           .then(res => {
             if (res.ok) {
-              statusMsg.innerText = "✅ The door opened!";
-              statusMsg.style.color = "green";
+              status.innerText = "✔️ Pajisja u aktivizua!";
             } else {
-              statusMsg.innerText = "❌ The device did not respond..";
-              statusMsg.style.color = "red";
+              status.innerText = "❌ Gabim në dërgim.";
             }
           })
-          .catch(err => {
-            statusMsg.innerText = "⚠️ Device related error!";
-            statusMsg.style.color = "red";
+          .catch(() => {
+            status.innerText = "⚠️ Gabim në rrjet.";
           });
       } else {
-        statusMsg.innerText = "🔐 The code is incorrect.";
-        statusMsg.style.color = "red";
+        status.innerText = "❌ PIN i pasaktë!";
       }
     }
   </script>
