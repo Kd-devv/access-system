@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="sq">
+<head>
+  <meta charset="UTF-8">
+  <title>Hyrja e Autorizuar</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      margin-top: 80px;
+      background: #f7f7f7;
+    }
+    input {
+      font-size: 18px;
+      padding: 10px;
+      width: 200px;
+      margin-top: 10px;
+    }
+    button {
+      font-size: 18px;
+      padding: 10px 20px;
+      margin-top: 10px;
+      cursor: pointer;
+    }
+    #status {
+      margin-top: 20px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h2>Vendos kodin për të hapur derën</h2>
+  <input type="password" id="code" placeholder="Kodi i aksesit">
+  <br>
+  <button onclick="checkCode()">Hap derën</button>
+  <p id="status"></p>
+
+  <script>
+    const kodiSakt = "4567"; // 🔐 Ndryshoje këtë me kodin tënd të fshehtë
+    const pajisjaURL = "http://192.168.4.1/open"; // 🔧 IP-ja ose URL e pajisjes që kontrollon derën
+
+    function checkCode() {
+      const inputCode = document.getElementById("code").value.trim();
+      const statusMsg = document.getElementById("status");
+
+      if (inputCode === kodiSakt) {
+        fetch(pajisjaURL)
+          .then(res => {
+            if (res.ok) {
+              statusMsg.innerText = "✅ Dera u hap!";
+              statusMsg.style.color = "green";
+            } else {
+              statusMsg.innerText = "❌ Pajisja nuk u përgjigj.";
+              statusMsg.style.color = "red";
+            }
+          })
+          .catch(err => {
+            statusMsg.innerText = "⚠️ Gabim në lidhje me pajisjen!";
+            statusMsg.style.color = "red";
+          });
+      } else {
+        statusMsg.innerText = "🔐 Kodi është i gabuar.";
+        statusMsg.style.color = "red";
+      }
+    }
+  </script>
+</body>
+</html>
