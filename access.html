@@ -12,9 +12,9 @@
 </head>
 <body>
   <h2>Vendos PIN për të hapur</h2>
-  <input type="password" id="pin" placeholder="Vendos PIN" />
+  <input type="password" id="pin" placeholder="Write the PIN/Vendos kodin PIN" />
   <br />
-  <button onclick="kontrollo()">Hap</button>
+  <button onclick="kontrollo()">Open door/Hap portën</button>
   <div id="status"></div>
 
   <script>
@@ -27,17 +27,17 @@
       const status = document.getElementById("status");
 
       if (pin === kodiSakt) {
-        status.innerText = "✅ PIN i saktë! Duke dërguar komandën...";
+        status.innerText = "✅ PIN OK! Wait..";
         fetch(proxyUrl)
           .then(res => res.text())
           .then(msg => {
             status.innerText = msg;
           })
           .catch(() => {
-            status.innerText = "❌ Gabim në rrjet.";
+            status.innerText = "❌ Wrong with network/Gabim në rrjet.";
           });
       } else {
-        status.innerText = "❌ PIN i pasaktë!";
+        status.innerText = "❌ Wrong PIN/PIN i pasaktë!";
       }
     }
   </script>
