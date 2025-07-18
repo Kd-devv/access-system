@@ -1,42 +1,40 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Kontroll Aksesi</title>
   <style>
     body { font-family: sans-serif; text-align: center; margin-top: 100px; }
-    input { padding: 10px; font-size: 18px; }
-    button { padding: 10px 20px; font-size: 18px; margin-top: 10px; }
+    input, button { padding: 10px; font-size: 18px; }
+    button { margin-top: 10px; }
     #status { margin-top: 20px; font-weight: bold; }
   </style>
 </head>
 <body>
   <h2>Vendos PIN për të hapur</h2>
   <input type="password" id="pin" placeholder="Vendos PIN" />
-  <br>
+  <br />
   <button onclick="kontrollo()">Hap</button>
   <div id="status"></div>
 
   <script>
-    const kodiSakt = "1234"; // ndryshoje me PIN-in tënd
-    const iftttUrl = "https://maker.ifttt.com/trigger/Porta/with/key/b5U1h_z5XAuGBFHczy0Mvr"; // vendos URL-në nga Webhooks
+    const kodiSakt = "1234";
+    // Vendos këtu URL e Cloudflare Worker-it që krijove
+    const proxyUrl = "https://porta.armnis76.workers.dev";
 
     function kontrollo() {
       const pin = document.getElementById("pin").value;
       const status = document.getElementById("status");
 
       if (pin === kodiSakt) {
-        status.innerText = "✅ Duke dërguar komandën...";
-        fetch(iftttUrl)
-          .then(res => {
-            if (res.ok) {
-              status.innerText = "✔️ Pajisja u aktivizua!";
-            } else {
-              status.innerText = "❌ Gabim në dërgim.";
-            }
+        status.innerText = "✅ PIN i saktë! Duke dërguar komandën...";
+        fetch(proxyUrl)
+          .then(res => res.text())
+          .then(msg => {
+            status.innerText = msg;
           })
           .catch(() => {
-            status.innerText = "⚠️ Gabim në rrjet.";
+            status.innerText = "❌ Gabim në rrjet.";
           });
       } else {
         status.innerText = "❌ PIN i pasaktë!";
