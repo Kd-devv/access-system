@@ -8,59 +8,68 @@
     body {
       font-family: sans-serif;
       text-align: center;
-      margin-top: 100px;
+      margin-top: 50px;
       padding: 0 20px;
+      background-color: #f8f8f8;
     }
 
     h2 {
-      font-size: 28px;
-      margin-bottom: 30px;
+      font-size: 40px;
+      margin-bottom: 40px;
     }
 
-    input[type="password"], button {
-      padding: 15px;
-      font-size: 24px;
-      width: 80%;
-      max-width: 400px;
-      box-sizing: border-box;
-      margin: 10px auto;
+    input[type="password"] {
+      padding: 20px;
+      font-size: 28px;
+      width: 90%;
+      max-width: 500px;
+      border: 2px solid #333;
+      border-radius: 10px;
+      margin-bottom: 20px;
     }
 
     button {
-      margin-top: 20px;
+      padding: 20px 40px;
+      font-size: 28px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #0056b3;
     }
 
     #status {
       margin-top: 30px;
+      font-size: 26px;
       font-weight: bold;
-      font-size: 22px;
     }
 
-    @media (max-width: 480px) {
-      body {
-        margin-top: 60px;
-      }
-
+    @media (max-width: 600px) {
       h2 {
-        font-size: 24px;
+        font-size: 36px;
       }
 
-      input[type="password"], button {
-        font-size: 22px;
-        padding: 14px;
+      input[type="password"],
+      button {
+        font-size: 26px;
+        width: 100%;
       }
 
       #status {
-        font-size: 20px;
+        font-size: 24px;
       }
     }
   </style>
 </head>
 <body>
   <h2>Vendos PIN për të hapur</h2>
-  <input type="password" id="pin" placeholder="Write PIN/Vendos PIN" />
+  <input type="password" id="pin" placeholder="Write PIN / Vendos PIN" />
   <br />
-  <button onclick="kontrollo()">Open door/Hap portën</button>
+  <button onclick="kontrollo()">Open door / Hap portën</button>
   <div id="status"></div>
 
   <script>
@@ -79,12 +88,7 @@
             status.innerText = msg;
           })
           .catch(() => {
-            status.innerText = "❌ Wrong with network/Gabim në rrjet.";
+            status.innerText = "❌ Gabim në rrjet / Network error.";
           });
       } else {
-        status.innerText = "❌ Wrong PIN/PIN i pasaktë!";
-      }
-    }
-  </script>
-</body>
-</html>
+        status.innerText = "❌ P
