@@ -8,33 +8,33 @@
     body {
       font-family: sans-serif;
       text-align: center;
-      margin-top: 40px;
+      margin-top: 30px;
       padding: 0 15px;
       background-color: #f4f4f4;
     }
 
     h2 {
-      font-size: 26px;
-      margin-bottom: 25px;
+      font-size: 22px;
+      margin-bottom: 20px;
     }
 
     input[type="password"] {
-      padding: 12px;
-      font-size: 18px;
+      padding: 10px;
+      font-size: 16px;
       width: 80%;
-      max-width: 350px;
-      border: 1.5px solid #333;
-      border-radius: 6px;
+      max-width: 300px;
+      border: 1px solid #333;
+      border-radius: 5px;
       margin-bottom: 15px;
     }
 
     button {
-      padding: 12px 24px;
-      font-size: 18px;
+      padding: 10px 20px;
+      font-size: 16px;
       background-color: #007bff;
       color: white;
       border: none;
-      border-radius: 6px;
+      border-radius: 5px;
       cursor: pointer;
     }
 
@@ -44,78 +44,16 @@
 
     #status {
       margin-top: 20px;
-      font-size: 16px;
+      font-size: 15px;
       font-weight: bold;
     }
 
-    /* Rrit pak vetëm për portrait mode */
+    /* Portrait – pak më të mëdha, por sërish të vogla */
     @media (orientation: portrait) {
-      h2 {
-        font-size: 28px;
-      }
-
-      input[type="password"], button {
-        font-size: 20px;
-        padding: 14px;
-        width: 90%;
-      }
-
-      #status {
-        font-size: 18px;
-      }
-    }
-
-    /* Landscape: asnjë rritje – mundësisht më kompakt */
-    @media (orientation: landscape) {
-      body {
-        margin-top: 20px;
-      }
-
       h2 {
         font-size: 24px;
       }
 
       input[type="password"], button {
         font-size: 17px;
-        padding: 10px;
-        max-width: 300px;
-      }
-
-      #status {
-        font-size: 16px;
-      }
-    }
-  </style>
-</head>
-<body>
-  <h2>Vendos PIN për të hapur</h2>
-  <input type="password" id="pin" placeholder="Write PIN / Vendos PIN" />
-  <br />
-  <button onclick="kontrollo()">Open door / Hap portën</button>
-  <div id="status"></div>
-
-  <script>
-    const kodiSakt = "1234";
-    const proxyUrl = "https://porta.armnis76.workers.dev";
-
-    function kontrollo() {
-      const pin = document.getElementById("pin").value;
-      const status = document.getElementById("status");
-
-      if (pin === kodiSakt) {
-        status.innerText = "✅ PIN OK! Wait..";
-        fetch(proxyUrl)
-          .then(res => res.text())
-          .then(msg => {
-            status.innerText = msg;
-          })
-          .catch(() => {
-            status.innerText = "❌ Gabim në rrjet / Network error.";
-          });
-      } else {
-        status.innerText = "❌ PIN i pasaktë!";
-      }
-    }
-  </script>
-</body>
-</html>
+        pad
