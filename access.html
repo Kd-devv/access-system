@@ -1,117 +1,61 @@
 <!DOCTYPE html>
-<html>
+<html lang="sq">
 <head>
   <meta charset="UTF-8" />
-  <title>Kontroll Aksesi me Multi-User</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hyrja me PIN</title>
   <style>
     body {
-      font-family: sans-serif;
-      text-align: center;
-      margin-top: 30px;
-      padding: 0 15px;
-      background-color: #f4f4f4;
+      display: flex; justify-content: center; align-items: center;
+      height: 100vh; background-color: #222; color: white;
+      font-family: sans-serif; flex-direction: column;
     }
-    h2 {
-      font-size: 22px;
-      margin-bottom: 20px;
-    }
-    select, input[type="password"], button {
-      font-size: 16px;
-      padding: 10px;
-      width: 80%;
-      max-width: 300px;
-      margin-bottom: 15px;
-      border-radius: 5px;
-      border: 1px solid #333;
+    input {
+      padding: 1rem; font-size: 1.5rem; border: none;
+      border-radius: 10px; text-align: center; width: 200px;
     }
     button {
-      background-color: #007bff;
-      color: white;
-      border: none;
-      cursor: pointer;
+      margin-top: 1rem; padding: 1rem 2rem; font-size: 1.2rem;
+      background-color: #28a745; color: white; border: none;
+      border-radius: 10px; cursor: pointer;
     }
-    button:hover {
-      background-color: #0056b3;
-    }
-    #status {
-      margin-top: 20px;
-      font-weight: bold;
-      font-size: 15px;
-    }
-    @media (orientation: portrait) {
-      select, input[type="password"], button {
-        font-size: 17px;
-        padding: 11px;
-        width: 90%;
-      }
-      #status {
-        font-size: 16px;
-      }
-    }
-    @media (orientation: landscape) {
-      select, input[type="password"], button {
-        font-size: 15px;
-        padding: 9px;
-        max-width: 280px;
-      }
-      #status {
-        font-size: 14px;
-      }
-    }
+    #msg { margin-top: 1rem; font-size: 1.2rem; }
   </style>
 </head>
 <body>
-  <h2>Kontroll Aksesi me Multi-User</h2>
-  <select id="userSelect" aria-label="Zgjidh përdoruesin">
-    <option value="" disabled selected>Zgjidh përdoruesin</option>
-    <option value="1234">Admin</option>
-    <option value="5678">Armand</option>
-    <option value="0000">Vizitor</option>
-  </select>
-  <br />
-  <input type="password" id="pin" placeholder="Vendos PIN për përdoruesin" aria-label="PIN" />
-  <br />
-  <button onclick="kontrollo()">Open door / Hap portën</button>
-  <div id="status"></div>
+  <input id="pin" type="password" placeholder="Fus PIN-in" maxlength="4" />
+  <button onclick="dergoPin()">Hap Derën</button>
+  <div id="msg"></div>
 
   <script>
-    const proxyUrl = "https://porta.armnis76.workers.dev";
+    async function dergoPin() {
+      const pin = document.getElementById("pin").value.trim();
+      const msg = document.getElementById("msg");
 
-    function kontrollo() {
-      const status = document.getElementById("status");
-      const userSelect = document.getElementById("userSelect");
-      const pinInput = document.getElementById("pin");
-      const pin = pinInput.value.trim();
-      const selectedPin = userSelect.value;
-
-      if (!selectedPin) {
-        status.innerText = "⚠️ Zgjidh përdoruesin!";
-        return;
-      }
       if (!pin) {
-        status.innerText = "⚠️ Vendos PIN!";
-        return;
-      }
-      if (pin !== selectedPin) {
-        status.innerText = "❌ PIN i pasaktë për përdoruesin e zgjedhur!";
+        msg.textContent = "Ju lutem fusni PIN-in.";
+        msg.style.color = "orange";
         return;
       }
 
-      status.innerText = "⏳ Verifikim PIN...";
+      msg.textContent = "⏳ Po kontrollohet...";
+      msg.style.color = "white";
 
-      fetch(proxyUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pin })
-      })
-      .then(res => res.text())
-      .then(msg => {
-        status.innerText = msg;
-      })
-      .catch(() => {
-        status.innerText = "❌ Gabim në rrjet / Network error.";
-      });
+      try {
+        const res = await fetch("https://porta.armnis76.workers.dev", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          mode: "cors",
+          body: JSON.stringify({ pin })
+        });
+
+        const text = await res.text();
+        msg.textContent = text;
+        msg.style.color = res.ok ? "lightgreen" : "orange";
+
+      } catch (err) {
+        msg.textContent = "❌ Gabim në rrjet.";
+        msg.style.color = "red";
+      }
     }
   </script>
 </body>
