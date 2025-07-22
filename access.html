@@ -2,61 +2,156 @@
 <html lang="sq">
 <head>
   <meta charset="UTF-8" />
-  <title>Hyrja me PIN</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hap Derën me PIN</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
-      display: flex; justify-content: center; align-items: center;
-      height: 100vh; background-color: #222; color: white;
-      font-family: sans-serif; flex-direction: column;
+      margin: 0;
+      height: 100vh;
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #4a90e2, #145374);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: #fff;
+      padding: 1rem;
     }
-    input {
-      padding: 1rem; font-size: 1.5rem; border: none;
-      border-radius: 10px; text-align: center; width: 200px;
+
+    .container {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 2rem 3rem;
+      border-radius: 15px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+      width: 320px;
+      max-width: 90vw;
+      text-align: center;
     }
+
+    h1 {
+      margin-bottom: 1.5rem;
+      font-weight: 600;
+      font-size: 1.8rem;
+      letter-spacing: 1px;
+    }
+
+    input[type="password"] {
+      width: 100%;
+      padding: 1rem;
+      font-size: 1.25rem;
+      border: none;
+      border-radius: 10px;
+      margin-bottom: 1rem;
+      outline: none;
+      background: rgba(255, 255, 255, 0.15);
+      color: #fff;
+      text-align: center;
+      transition: background 0.3s ease;
+    }
+
+    input[type="password"]:focus {
+      background: rgba(255, 255, 255, 0.3);
+      box-shadow: 0 0 8px #77b6ea;
+    }
+
     button {
-      margin-top: 1rem; padding: 1rem 2rem; font-size: 1.2rem;
-      background-color: #28a745; color: white; border: none;
-      border-radius: 10px; cursor: pointer;
+      width: 100%;
+      padding: 1rem;
+      background: #28a745;
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 1.2rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.3s ease;
     }
-    #msg { margin-top: 1rem; font-size: 1.2rem; }
+
+    button:hover {
+      background: #218838;
+    }
+
+    #msg {
+      margin-top: 1rem;
+      font-size: 1.15rem;
+      min-height: 1.5em;
+      user-select: none;
+    }
+
+    /* Ngjyra për mesazhe */
+    .success {
+      color: #a8ff9e;
+      font-weight: 600;
+    }
+    .warning {
+      color: #ffcc00;
+      font-weight: 600;
+    }
+    .error {
+      color: #ff6b6b;
+      font-weight: 700;
+    }
   </style>
 </head>
 <body>
-  <input id="pin" type="password" placeholder="Fus PIN-in" maxlength="4" />
-  <button onclick="dergoPin()">Hap Derën</button>
-  <div id="msg"></div>
+  <div class="container">
+    <h1>Hap Derën me PIN</h1>
+    <input id="pin" type="password" maxlength="4" placeholder="Fut PIN-in këtu" autocomplete="off" />
+    <button onclick="dergoPin()">Hap Derën</button>
+    <div id="msg"></div>
+  </div>
 
   <script>
     async function dergoPin() {
-      const pin = document.getElementById("pin").value.trim();
+      const pinInput = document.getElementById("pin");
       const msg = document.getElementById("msg");
+      const pin = pinInput.value.trim();
 
       if (!pin) {
         msg.textContent = "Ju lutem fusni PIN-in.";
-        msg.style.color = "orange";
+        msg.className = "warning";
         return;
       }
 
       msg.textContent = "⏳ Po kontrollohet...";
-      msg.style.color = "white";
+      msg.className = "";
 
       try {
-        const res = await fetch("https://porta.armnis76.workers.dev", {
+        const response = await fetch("https://porta.armnis76.workers.dev", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           mode: "cors",
           body: JSON.stringify({ pin })
         });
 
-        const text = await res.text();
-        msg.textContent = text;
-        msg.style.color = res.ok ? "lightgreen" : "orange";
+        const text = await response.text();
 
-      } catch (err) {
+        if (response.ok) {
+          msg.textContent = text;
+          msg.className = "success";
+          pinInput.value = ""; // Fshi input pas suksesi
+        } else {
+          msg.textContent = text;
+          msg.className = "warning";
+        }
+
+      } catch (error) {
         msg.textContent = "❌ Gabim në rrjet.";
-        msg.style.color = "red";
+        msg.className = "error";
       }
     }
+
+    // Opsionale: Lejo të shtypet Enter për dërgim
+    document.getElementById("pin").addEventListener("keydown", function(e) {
+      if (e.key === "Enter") {
+        dergoPin();
+      }
+    });
   </script>
 </body>
 </html>
