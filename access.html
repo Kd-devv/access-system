@@ -2,8 +2,8 @@
 <html>
 <head>
   <meta charset="UTF-8" />
-  <title>Kontroll Aksesi</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kontroll Aksesi me Multi-User</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
       font-family: sans-serif;
@@ -12,71 +12,49 @@
       padding: 0 15px;
       background-color: #f4f4f4;
     }
-
     h2 {
       font-size: 22px;
       margin-bottom: 20px;
     }
-
-    input[type="password"] {
-      padding: 10px;
+    select, input[type="password"], button {
       font-size: 16px;
+      padding: 10px;
       width: 80%;
       max-width: 300px;
-      border: 1px solid #333;
-      border-radius: 5px;
       margin-bottom: 15px;
+      border-radius: 5px;
+      border: 1px solid #333;
     }
-
     button {
-      padding: 10px 20px;
-      font-size: 16px;
       background-color: #007bff;
       color: white;
       border: none;
-      border-radius: 5px;
       cursor: pointer;
     }
-
     button:hover {
       background-color: #0056b3;
     }
-
     #status {
       margin-top: 20px;
-      font-size: 15px;
       font-weight: bold;
+      font-size: 15px;
     }
-
-    /* Portrait – pak më të mëdha, por sërish të vogla */
     @media (orientation: portrait) {
-      h2 {
-        font-size: 24px;
-      }
-
-      input[type="password"], button {
+      select, input[type="password"], button {
         font-size: 17px;
         padding: 11px;
         width: 90%;
       }
-
       #status {
         font-size: 16px;
       }
     }
-
-    /* Landscape – mos ndrysho përmasat, ose edhe më kompakte */
     @media (orientation: landscape) {
-      h2 {
-        font-size: 20px;
-      }
-
-      input[type="password"], button {
+      select, input[type="password"], button {
         font-size: 15px;
         padding: 9px;
         max-width: 280px;
       }
-
       #status {
         font-size: 14px;
       }
@@ -84,33 +62,56 @@
   </style>
 </head>
 <body>
-  <h2>Vendos PIN për të hapur</h2>
-  <input type="password" id="pin" placeholder="Write PIN / Vendos PIN" />
+  <h2>Kontroll Aksesi me Multi-User</h2>
+  <select id="userSelect" aria-label="Zgjidh përdoruesin">
+    <option value="" disabled selected>Zgjidh përdoruesin</option>
+    <option value="1234">Admin</option>
+    <option value="5678">Armand</option>
+    <option value="0000">Vizitor</option>
+  </select>
+  <br />
+  <input type="password" id="pin" placeholder="Vendos PIN për përdoruesin" aria-label="PIN" />
   <br />
   <button onclick="kontrollo()">Open door / Hap portën</button>
   <div id="status"></div>
 
   <script>
-    const kodiSakt = "1234";
     const proxyUrl = "https://porta.armnis76.workers.dev";
 
     function kontrollo() {
-      const pin = document.getElementById("pin").value;
       const status = document.getElementById("status");
+      const userSelect = document.getElementById("userSelect");
+      const pinInput = document.getElementById("pin");
+      const pin = pinInput.value.trim();
+      const selectedPin = userSelect.value;
 
-      if (pin === kodiSakt) {
-        status.innerText = "✅ PIN OK! Wait..";
-        fetch(proxyUrl)
-          .then(res => res.text())
-          .then(msg => {
-            status.innerText = msg;
-          })
-          .catch(() => {
-            status.innerText = "❌ Gabim në rrjet / Network error.";
-          });
-      } else {
-        status.innerText = "❌ PIN i pasaktë!";
+      if (!selectedPin) {
+        status.innerText = "⚠️ Zgjidh përdoruesin!";
+        return;
       }
+      if (!pin) {
+        status.innerText = "⚠️ Vendos PIN!";
+        return;
+      }
+      if (pin !== selectedPin) {
+        status.innerText = "❌ PIN i pasaktë për përdoruesin e zgjedhur!";
+        return;
+      }
+
+      status.innerText = "⏳ Verifikim PIN...";
+
+      fetch(proxyUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin })
+      })
+      .then(res => res.text())
+      .then(msg => {
+        status.innerText = msg;
+      })
+      .catch(() => {
+        status.innerText = "❌ Gabim në rrjet / Network error.";
+      });
     }
   </script>
 </body>
