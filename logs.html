@@ -104,10 +104,8 @@
 
   <script>
     const logsUrl = "https://porta.armnis76.workers.dev/logs";
-    const usersUrl = "https://porta.armnis76.workers.dev";
 
     let allLogs = [];
-    let allUsers = {};
     let filteredLogs = [];
 
     const pageSize = 15;
@@ -128,123 +126,134 @@
     async function fetchData() {
       try {
         logTableBody.innerHTML = '<tr><td colspan="5">Ngarkohet...</td></tr>';
-        const [logsRes, usersRes] = await Promise.all([
-          fetch(logsUrl),
-          fetch(usersUrl)
-        ]);
+        const logsRes = await fetch(logsUrl);
         if (!logsRes.ok) throw new Error("Nuk mund të merret lista e logeve");
-        if (!usersRes.ok) throw new Error("Nuk mund të merret lista e përdoruesve");
 
         const logsData = await logsRes.json();
-        allLogs = Object.values(logsData).map(log => ({
-          ...log,
-          timeDate: new Date(log.time)
-        }));
 
-        allUsers = await usersRes.json();
-
-        filteredLogs = allLogs.slice();
+        allLogs = Object.values(logsData)
+          .map(log => {
+            return {
+              ...log,
+              timeObj: new Date(log.time)
+            };
+          })
+          .sort((a, b) => b.timeObj - a.timeObj);
 
         currentPage = 1;
-        renderTable();
+        applyFilters();
       } catch (err) {
-        logTableBody.innerHTML = `<tr><td colspan="5" style="color:red">${err.message}</td></tr>`;
+        alert("Gabim në marrjen e të dhënave: " + err.message);
+        logTableBody.innerHTML = '<tr><td colspan="5">Gabim në marrjen e të dhënave.</td></tr>';
       }
-    }
-
-    function renderTable() {
-      const start = (currentPage - 1) * pageSize;
-      const end = start + pageSize;
-      const pageItems = filteredLogs.slice(start, end);
-
-      if (pageItems.length === 0) {
-        logTableBody.innerHTML = `<tr><td colspan="5">Asnjë log i gjetur.</td></tr>`;
-        pageInfoSpan.textContent = "";
-      } else {
-        logTableBody.innerHTML = pageItems.map(log => {
-          const pin = allUsers[log.user]?.pin || "—";
-          return `<tr>
-            <td>${log.user}</td>
-            <td>${pin}</td>
-            <td>${log.timeDate.toLocaleString()}</td>
-            <td>${log.ip}</td>
-            <td>${log.status}</td>
-          </tr>`;
-        }).join("");
-        pageInfoSpan.textContent = `Faqja ${currentPage} nga ${Math.ceil(filteredLogs.length / pageSize)}`;
-      }
-
-      prevPageBtn.disabled = currentPage === 1;
-      nextPageBtn.disabled = currentPage * pageSize >= filteredLogs.length;
     }
 
     function applyFilters() {
-      const searchName = searchNameInput.value.trim().toLowerCase();
+      const nameFilter = searchNameInput.value.trim().toLowerCase();
       const statusFilter = statusFilterSelect.value;
       const dateFrom = dateFromInput.value ? new Date(dateFromInput.value) : null;
       const dateTo = dateToInput.value ? new Date(dateToInput.value) : null;
 
       filteredLogs = allLogs.filter(log => {
-        if (searchName && !log.user.toLowerCase().includes(searchName)) return false;
-        if (statusFilter && log.status !== statusFilter) return false;
-        if (dateFrom && log.timeDate < dateFrom) return false;
-        if (dateTo) {
-          // include whole day by adding 1 day and checking less than next day
-          const nextDay = new Date(dateTo);
-          nextDay.setDate(nextDay.getDate() + 1);
-          if (log.timeDate >= nextDay) return false;
+        if (nameFilter) {
+          const nameParts = log.user.toLowerCase().split(/\s+/);
+          const match = nameParts.some(part => part.startsWith(nameFilter));
+          if (!match) return false;
         }
+
+        if (statusFilter && log.status !== statusFilter) return false;
+
+        if (dateFrom && log.timeObj < dateFrom) return false;
+
+        if (dateTo) {
+          const dateToEnd = new Date(dateTo);
+          dateToEnd.setDate(dateToEnd.getDate() + 1);
+          if (log.timeObj >= dateToEnd) return false;
+        }
+
         return true;
       });
+
       currentPage = 1;
-      renderTable();
+      renderPage();
     }
 
-    function exportCSV() {
-      if (filteredLogs.length === 0) {
-        alert("Asnjë të dhënë për eksport.");
-        return;
+    function renderPage() {
+      const start = (currentPage - 1) * pageSize;
+      const end = start + pageSize;
+      const pageItems = filteredLogs.slice(start, end);
+
+      if (pageItems.length === 0) {
+        logTableBody.innerHTML = '<tr><td colspan="5">Nuk ka loge për kriteret e zgjedhura.</td></tr>';
+      } else {
+        logTableBody.innerHTML = pageItems.map(log => {
+          return `
+            <tr>
+              <td>${log.user}</td>
+              <td>${log.pin || "—"}</td>
+              <td>${log.timeObj.toLocaleString()}</td>
+              <td>${log.ip}</td>
+              <td>${log.status}</td>
+            </tr>`;
+        }).join("");
       }
-      let csv = "Emri,PIN,Data & Ora,IP,Status\n";
-      for (const log of filteredLogs) {
-        const pin = allUsers[log.user]?.pin || "";
-        const row = [
-          `"${log.user}"`,
-          `"${pin}"`,
-          `"${log.timeDate.toISOString()}"`,
-          `"${log.ip}"`,
-          `"${log.status}"`
-        ].join(",");
-        csv += row + "\n";
-      }
-      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `logs_export_${new Date().toISOString().slice(0,10)}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
+
+      pageInfoSpan.textContent = `Faqja ${currentPage} nga ${Math.max(1, Math.ceil(filteredLogs.length / pageSize))}`;
+      prevPageBtn.disabled = currentPage === 1;
+      nextPageBtn.disabled = currentPage >= Math.ceil(filteredLogs.length / pageSize);
     }
 
     btnFilter.addEventListener("click", applyFilters);
-    btnExport.addEventListener("click", exportCSV);
     btnReload.addEventListener("click", fetchData);
 
     prevPageBtn.addEventListener("click", () => {
       if (currentPage > 1) {
         currentPage--;
-        renderTable();
+        renderPage();
       }
     });
 
     nextPageBtn.addEventListener("click", () => {
-      if (currentPage * pageSize < filteredLogs.length) {
+      if (currentPage < Math.ceil(filteredLogs.length / pageSize)) {
         currentPage++;
-        renderTable();
+        renderPage();
       }
     });
 
+    btnExport.addEventListener("click", () => {
+      if (filteredLogs.length === 0) {
+        alert("Nuk ka të dhëna për eksport.");
+        return;
+      }
+      const csvRows = [];
+      csvRows.push(["Emri", "PIN", "Data & Ora", "IP", "Statusi"].join(","));
+      filteredLogs.forEach(log => {
+        const row = [
+          `"${log.user}"`,
+          `"${log.pin || ''}"`,
+          `"${log.timeObj.toLocaleString()}"`,
+          `"${log.ip}"`,
+          `"${log.status}"`
+        ].join(",");
+        csvRows.push(row);
+      });
+
+      const csvString = csvRows.join("\n");
+      const blob = new Blob([csvString], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `logs_export_${new Date().toISOString().slice(0,10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+
+    // Ngarko fillimisht të dhënat
     fetchData();
   </script>
+
 </body>
 </html>
