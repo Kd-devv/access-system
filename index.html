@@ -1,44 +1,246 @@
-<!-- pjesa për shtimin e PIN-it -->
-<div class="box">
-  <h2>Shto PIN të ri</h2>
-  <input id="newPin" type="text" placeholder="PIN i ri">
-  <br>
-  <input id="newName" type="text" placeholder="Emri për PIN-in">
-  <br>
-  <input id="adminPass" type="password" placeholder="Fjalëkalimi admin">
-  <br>
-  <button onclick="shtoPin()">Shto PIN</button>
-  <div id="responseShtimi" class="response"></div>
-</div>
+<!DOCTYPE html>
+<html lang="sq">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Menaxhimi i PIN-eve dhe Hapja e Derës</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+  body {
+    margin: 0; font-family: 'Poppins', sans-serif; background: linear-gradient(135deg, #4a90e2, #145374);
+    color: white; padding: 1rem;
+  }
+  h2 {
+    margin-top: 2rem;
+    border-bottom: 2px solid #a8ff9e;
+    padding-bottom: 0.3rem;
+  }
+  .container {
+    background: rgba(255,255,255,0.1);
+    border-radius: 15px;
+    padding: 1.5rem;
+    max-width: 400px;
+    margin: 0 auto 2rem;
+  }
+  input, button {
+    width: 100%;
+    padding: 0.8rem;
+    margin-bottom: 1rem;
+    border-radius: 8px;
+    border: none;
+    font-size: 1rem;
+  }
+  input {
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+    text-align: center;
+  }
+  input:focus {
+    outline: none;
+    background: rgba(255,255,255,0.3);
+  }
+  button {
+    background: #28a745;
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.3s ease;
+  }
+  button:hover {
+    background: #218838;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+    color: white;
+  }
+  th, td {
+    padding: 0.5rem;
+    border-bottom: 1px solid #a8ff9e;
+    text-align: left;
+  }
+  .delete-btn {
+    background: #ff4c4c;
+    padding: 0.3rem 0.6rem;
+    border-radius: 5px;
+    cursor: pointer;
+    color: white;
+    border: none;
+  }
+  .message {
+    min-height: 1.5em;
+    margin-bottom: 1rem;
+  }
+  .success { color: #a8ff9e; font-weight: 600; }
+  .warning { color: #ffcc00; font-weight: 600; }
+  .error { color: #ff6b6b; font-weight: 700; }
+</style>
+</head>
+<body>
+
+  <h2>Hap Derën me PIN</h2>
+  <div class="container" id="openDoorSection">
+    <input type="password" id="openPin" maxlength="4" placeholder="Fut PIN-in këtu" autocomplete="off" />
+    <button onclick="openDoor()">Hap Derën</button>
+    <div id="openDoorMsg" class="message"></div>
+  </div>
+
+  <h2>Menaxho PIN-et (Vetëm Admin)</h2>
+  <div class="container" id="adminSection">
+    <input type="text" id="adminPass" placeholder="Fjalëkalimi i Adminit" autocomplete="off" />
+    <input type="text" id="newPin" maxlength="4" placeholder="PIN i ri" autocomplete="off" />
+    <input type="text" id="newName" placeholder="Emri i përdoruesit" autocomplete="off" />
+    <button onclick="addPin()">Shto PIN</button>
+    <div id="adminMsg" class="message"></div>
+
+    <h3>Lista e PIN-eve</h3>
+    <table id="pinListTable">
+      <thead>
+        <tr><th>PIN</th><th>Emri</th><th>Fshij</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
 
 <script>
-  const apiUrl = "https://porta.armnis76.workers.dev";
+  const workerUrl = "https://porta.armnis76.workers.dev";
 
-  async function hapPorten() {
-    const pin = document.getElementById("pin").value;
+  // Hapja e derës me PIN
+  async function openDoor() {
+    const pin = document.getElementById("openPin").value.trim();
+    const msg = document.getElementById("openDoorMsg");
+    msg.textContent = "";
+    msg.className = "message";
 
-    const response = await fetch(apiUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ pin })
-    });
+    if (!pin) {
+      msg.textContent = "Ju lutem fusni PIN-in.";
+      msg.className = "warning";
+      return;
+    }
 
-    const text = await response.text();
-    document.getElementById("responseHapja").innerText = text;
+    msg.textContent = "⏳ Po kontrollohet...";
+    msg.className = "";
+
+    try {
+      const res = await fetch(workerUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin })
+      });
+      const text = await res.text();
+
+      if (res.ok) {
+        msg.textContent = text;
+        msg.className = "success";
+        document.getElementById("openPin").value = "";
+      } else {
+        msg.textContent = text;
+        msg.className = "warning";
+      }
+    } catch (err) {
+      msg.textContent = "❌ Gabim në rrjet.";
+      msg.className = "error";
+    }
   }
 
-  async function shtoPin() {
-    const pin = document.getElementById("newPin").value;
-    const name = document.getElementById("newName").value;
-    const adminPass = document.getElementById("adminPass").value;
+  // Shto PIN i ri (me adminPass)
+  async function addPin() {
+    const adminPass = document.getElementById("adminPass").value.trim();
+    const pin = document.getElementById("newPin").value.trim();
+    const name = document.getElementById("newName").value.trim();
+    const msg = document.getElementById("adminMsg");
+    msg.textContent = "";
+    msg.className = "message";
 
-    const response = await fetch(apiUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ pin, name, adminPass, add: true })
-    });
+    if (!adminPass || !pin || !name) {
+      msg.textContent = "Ju lutem plotësoni të gjitha fushat.";
+      msg.className = "warning";
+      return;
+    }
 
-    const text = await response.text();
-    document.getElementById("responseShtimi").innerText = text;
+    msg.textContent = "⏳ Po shtohet PIN-i...";
+    msg.className = "";
+
+    try {
+      const res = await fetch(workerUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin, name, add: true, adminPass })
+      });
+      const text = await res.text();
+
+      if (res.ok) {
+        msg.textContent = text;
+        msg.className = "success";
+        document.getElementById("newPin").value = "";
+        document.getElementById("newName").value = "";
+        loadPinList(); // Rifresko listën
+      } else {
+        msg.textContent = text;
+        msg.className = "warning";
+      }
+    } catch (err) {
+      msg.textContent = "❌ Gabim në rrjet.";
+      msg.className = "error";
+    }
   }
+
+  // Ngarko listën e PIN-eve nga Worker (nevojitet që Worker të mbështesë GET)
+  async function loadPinList() {
+    const tbody = document.querySelector("#pinListTable tbody");
+    tbody.innerHTML = "<tr><td colspan='3'>Duke ngarkuar...</td></tr>";
+    try {
+      const res = await fetch(workerUrl, { method: "GET" });
+      if (!res.ok) throw new Error("Gabim në ngarkimin e listës");
+      const data = await res.json();
+
+      if (data && data.length > 0) {
+        tbody.innerHTML = "";
+        data.forEach(item => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${item.pin}</td>
+            <td>${item.name}</td>
+            <td><button class="delete-btn" onclick="deletePin('${item.pin}')">Fshij</button></td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } else {
+        tbody.innerHTML = "<tr><td colspan='3'>Nuk ka PIN-e të regjistruara.</td></tr>";
+      }
+    } catch (err) {
+      tbody.innerHTML = `<tr><td colspan='3' class="error">Gabim: ${err.message}</td></tr>`;
+    }
+  }
+
+  // Fshi PIN nga Worker (duhet mbështetje DELETE dhe adminPass)
+  async function deletePin(pin) {
+    const adminPass = prompt("Fjalëkalimi i adminit për fshirje:");
+    if (!adminPass) return alert("Fshirja u anulua.");
+
+    try {
+      const res = await fetch(workerUrl, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin, adminPass })
+      });
+      const text = await res.text();
+
+      if (res.ok) {
+        alert(text);
+        loadPinList();
+      } else {
+        alert("Gabim: " + text);
+      }
+    } catch (err) {
+      alert("Gabim rrjeti: " + err.message);
+    }
+  }
+
+  // Ngarko lista sapo hapet faqja
+  window.onload = loadPinList;
 </script>
+
+</body>
+</html>
