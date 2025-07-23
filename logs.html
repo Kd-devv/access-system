@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="sq">
+<head>
+  <meta charset="UTF-8" />
+  <title>Log i Aksesimeve</title>
+  <style>
+    body { font-family: sans-serif; max-width: 900px; margin: auto; padding: 20px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    th { background: #f0f0f0; }
+    h1 { margin-bottom: 10px; }
+    .btn { padding: 8px 16px; margin: 10px 0; font-size: 16px; }
+  </style>
+</head>
+<body>
+  <h1>📋 Log i Aksesimeve</h1>
+  <button class="btn" onclick="loadLogs()">🔄 Rifresko</button>
+  <table>
+    <thead>
+      <tr>
+        <th>Emri</th>
+        <th>PIN</th>
+        <th>Data & Ora</th>
+        <th>IP</th>
+        <th>Statusi</th>
+      </tr>
+    </thead>
+    <tbody id="logTable"></tbody>
+  </table>
+
+  <script>
+    const apiUrl = "https://porta.armnis76.workers.dev";
+
+    async function loadLogs() {
+      try {
+        const entries = await fetch(apiUrl);
+        const users = await entries.json();
+
+        const kvEntries = await fetch(apiUrl + "/logs"); // opsionale nëse ndan endpoint
+        const logs = await kvEntries.json(); // ose përdor get-all si më poshtë
+
+        // Nëse nuk ke një endpoint të ndarë për loget, lexojmë gjithçka dhe filtrojmë:
+        const all = await fetch(apiUrl);
+        const data = await all.json();
+
+        const logRows = Object.entries(data)
+          .filter(([key]) => key.startsWith("log-"))
+          .sort((a, b) => b[0].localeCompare(a[0])) // më të fundit lart
+          .map(([key, log]) => {
+            const user = data[log.user];
+            return `
+              <tr>
+                <td>${log.user}</td>
+                <td>${user?.pin || "?"}</td>
+                <td>${new Date(log.time).toLocaleString()}</td>
+                <td>${log.ip}</td>
+                <td>${log.status}</td>
+              </tr>
+            `;
+          }).join("");
+
+        document.getElementById("logTable").innerHTML = logRows || "<tr><td colspan='5'>Nuk ka loge.</td></tr>";
+      } catch (err) {
+        alert("Gabim në marrjen e logeve: " + err.message);
+      }
+    }
+
+    loadLogs();
+  </script>
+</body>
+</html>
