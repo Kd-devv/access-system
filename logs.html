@@ -162,15 +162,22 @@
       const dateTo = dateToInput.value ? new Date(dateToInput.value) : null;
 
       filteredLogs = allLogs.filter(log => {
-        if (nameFilter && !log.user.toLowerCase().includes(nameFilter)) return false;
+        if (nameFilter) {
+          const nameParts = log.user.toLowerCase().split(/\s+/);
+          const match = nameParts.some(part => part.startsWith(nameFilter));
+          if (!match) return false;
+        }
+
         if (statusFilter && log.status !== statusFilter) return false;
+
         if (dateFrom && log.timeObj < dateFrom) return false;
+
         if (dateTo) {
-          // Shto 1 ditë tek dateTo për të përfshirë tërë ditën e zgjedhur
           const dateToEnd = new Date(dateTo);
           dateToEnd.setDate(dateToEnd.getDate() + 1);
           if (log.timeObj >= dateToEnd) return false;
         }
+
         return true;
       });
 
@@ -233,7 +240,6 @@
       filteredLogs.forEach(log => {
         const userData = allUsers[log.user] || {};
         const pin = userData.pin || "";
-        // Escape if needed
         const row = [
           `"${log.user}"`,
           `"${pin}"`,
