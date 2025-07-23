@@ -2,19 +2,20 @@
 <html lang="sq">
 <head>
   <meta charset="UTF-8" />
-  <title>Log i Aksesimeve</title>
+  <title>Log i Aksesimeve - i Kompletuar</title>
   <style>
     body { font-family: sans-serif; max-width: 900px; margin: auto; padding: 20px; }
     table { width: 100%; border-collapse: collapse; margin-top: 20px; }
     th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
     th { background: #f0f0f0; }
     h1 { margin-bottom: 10px; }
-    .btn { padding: 8px 16px; margin: 10px 0; font-size: 16px; }
+    .btn { padding: 8px 16px; margin: 10px 0; font-size: 16px; cursor: pointer; }
   </style>
 </head>
 <body>
   <h1>📋 Log i Aksesimeve</h1>
   <button class="btn" onclick="loadLogs()">🔄 Rifresko</button>
+
   <table>
     <thead>
       <tr>
@@ -25,43 +26,51 @@
         <th>Statusi</th>
       </tr>
     </thead>
-    <tbody id="logTable"></tbody>
+    <tbody id="logTable">
+      <tr><td colspan="5">Ngarkohet...</td></tr>
+    </tbody>
   </table>
 
   <script>
-    const apiUrl = "https://porta.armnis76.workers.dev";
+    const logsUrl = "https://porta.armnis76.workers.dev/logs";
+    const usersUrl = "https://porta.armnis76.workers.dev";
 
     async function loadLogs() {
       try {
-        const entries = await fetch(apiUrl);
-        const users = await entries.json();
+        // 1) Merr loget
+        const logsRes = await fetch(logsUrl);
+        if (!logsRes.ok) throw new Error("Nuk mund të merret lista e logeve");
+        const logsData = await logsRes.json();
 
-        const kvEntries = await fetch(apiUrl + "/logs"); // opsionale nëse ndan endpoint
-        const logs = await kvEntries.json(); // ose përdor get-all si më poshtë
+        // 2) Merr përdoruesit
+        const usersRes = await fetch(usersUrl);
+        if (!usersRes.ok) throw new Error("Nuk mund të merret lista e përdoruesve");
+        const usersData = await usersRes.json();
 
-        // Nëse nuk ke një endpoint të ndarë për loget, lexojmë gjithçka dhe filtrojmë:
-        const all = await fetch(apiUrl);
-        const data = await all.json();
+        // 3) Përfito listën e logeve (si array), rendit sipas kohe (më të fundit lart)
+        const logs = Object.values(logsData)
+          .sort((a, b) => new Date(b.time) - new Date(a.time));
 
-        const logRows = Object.entries(data)
-          .filter(([key]) => key.startsWith("log-"))
-          .sort((a, b) => b[0].localeCompare(a[0])) // më të fundit lart
-          .map(([key, log]) => {
-            const user = data[log.user];
-            return `
-              <tr>
-                <td>${log.user}</td>
-                <td>${user?.pin || "?"}</td>
-                <td>${new Date(log.time).toLocaleString()}</td>
-                <td>${log.ip}</td>
-                <td>${log.status}</td>
-              </tr>
-            `;
-          }).join("");
+        // 4) Përgatit rreshtat e tabelës me lidhjen me PIN
+        const rows = logs.map(log => {
+          const user = usersData[log.user] || {};
+          const pin = user.pin || "—";
+          return `
+            <tr>
+              <td>${log.user}</td>
+              <td>${pin}</td>
+              <td>${new Date(log.time).toLocaleString()}</td>
+              <td>${log.ip}</td>
+              <td>${log.status}</td>
+            </tr>`;
+        }).join("");
 
-        document.getElementById("logTable").innerHTML = logRows || "<tr><td colspan='5'>Nuk ka loge.</td></tr>";
+        // 5) Vendos në tabelë ose mesazh nëse bosh
+        document.getElementById("logTable").innerHTML = rows || '<tr><td colspan="5">Nuk ka loge.</td></tr>';
+
       } catch (err) {
-        alert("Gabim në marrjen e logeve: " + err.message);
+        alert("Gabim në marrjen e të dhënave: " + err.message);
+        document.getElementById("logTable").innerHTML = '<tr><td colspan="5">Gabim në marrjen e të dhënave.</td></tr>';
       }
     }
 
