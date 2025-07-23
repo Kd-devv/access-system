@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Menaxhimi i Userave me PIN</title>
+  <title>Menaxho Userat - Porta</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
 
@@ -16,48 +16,47 @@
       min-height: 100vh;
       font-family: 'Poppins', sans-serif;
       background: linear-gradient(135deg, #4a90e2, #145374);
+      color: #fff;
+      padding: 1rem;
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 1rem;
-      color: #fff;
     }
 
     h1 {
-      margin: 1.5rem 0 1rem;
+      margin: 1.5rem 0;
       font-weight: 600;
-      font-size: 1.8rem;
+      font-size: 2rem;
       letter-spacing: 1px;
-      text-align: center;
     }
 
     .container {
       background: rgba(255, 255, 255, 0.1);
-      padding: 2rem 3rem;
+      padding: 2rem;
       border-radius: 15px;
       box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
-      width: 360px;
+      width: 400px;
       max-width: 90vw;
       margin-bottom: 2rem;
     }
 
-    input[type="password"],
-    input[type="text"] {
+    input[type="text"],
+    input[type="password"] {
       width: 100%;
-      padding: 1rem;
-      font-size: 1.25rem;
-      border: none;
-      border-radius: 10px;
+      padding: 0.8rem;
       margin-bottom: 1rem;
+      border-radius: 8px;
+      border: none;
       outline: none;
+      font-size: 1rem;
       background: rgba(255, 255, 255, 0.15);
       color: #fff;
       text-align: center;
       transition: background 0.3s ease;
     }
 
-    input[type="password"]:focus,
-    input[type="text"]:focus {
+    input[type="text"]:focus,
+    input[type="password"]:focus {
       background: rgba(255, 255, 255, 0.3);
       box-shadow: 0 0 8px #77b6ea;
     }
@@ -69,270 +68,308 @@
       border: none;
       border-radius: 10px;
       color: #fff;
-      font-size: 1.2rem;
       font-weight: 600;
+      font-size: 1.1rem;
       cursor: pointer;
       transition: background 0.3s ease;
-      margin-bottom: 0.5rem;
+      margin-bottom: 1rem;
     }
 
     button:hover {
       background: #218838;
     }
 
-    #userList {
-      max-height: 250px;
-      overflow-y: auto;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 10px;
-      padding: 1rem;
+    table {
+      width: 100%;
+      border-collapse: collapse;
       margin-top: 1rem;
       color: #fff;
-      font-size: 1rem;
     }
 
-    .userEntry {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 0.6rem;
-      border-bottom: 1px solid rgba(255,255,255,0.2);
-      padding-bottom: 0.3rem;
-      align-items: center;
+    th, td {
+      padding: 0.5rem 0.8rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+      text-align: center;
     }
 
-    .userEntry:last-child {
-      border-bottom: none;
+    th {
+      font-weight: 600;
+      background: rgba(255,255,255,0.15);
     }
 
-    .userInfo {
-      flex-grow: 1;
+    tr:hover {
+      background: rgba(255, 255, 255, 0.1);
     }
 
-    .btnSmall {
+    .btn-small {
       background: #dc3545;
-      border-radius: 6px;
       padding: 0.3rem 0.6rem;
       font-size: 0.9rem;
-      margin-left: 0.5rem;
-      cursor: pointer;
-      transition: background 0.3s ease;
-      border: none;
-      color: #fff;
+      border-radius: 6px;
+      margin-left: 0.3rem;
     }
 
-    .btnSmall:hover {
+    .btn-small:hover {
       background: #b02a37;
     }
 
     #msg {
-      margin-top: 1rem;
-      font-size: 1.15rem;
       min-height: 1.5em;
+      margin-top: 1rem;
+      font-weight: 600;
       user-select: none;
-      text-align: center;
     }
 
-    .success {
-      color: #a8ff9e;
-      font-weight: 600;
-    }
-    .warning {
-      color: #ffcc00;
-      font-weight: 600;
-    }
-    .error {
-      color: #ff6b6b;
-      font-weight: 700;
-    }
+    .success { color: #a8ff9e; }
+    .warning { color: #ffcc00; }
+    .error { color: #ff6b6b; }
   </style>
 </head>
 <body>
 
-  <h1>Menaxho Userat me PIN</h1>
+  <h1>Menaxho Userat e Portës</h1>
 
-  <div class="container" id="formContainer">
-    <input id="name" type="text" maxlength="30" placeholder="Emri i përdoruesit" autocomplete="off" />
-    <input id="pin" type="password" maxlength="4" placeholder="PIN (4 shifra)" autocomplete="off" />
-    <input id="adminPass" type="password" placeholder="Fjalëkalimi admin" autocomplete="off" />
-    <button onclick="shtoUser()">Shto / Ndrysho User</button>
+  <div class="container" id="form-container">
+    <input type="text" id="adminPass" placeholder="Fjalëkalimi Admin (p.sh. porta123)" autocomplete="off" />
+
+    <input type="text" id="name" placeholder="Emri i përdoruesit" autocomplete="off" />
+    <input type="text" id="pin" placeholder="PIN (4 shifra)" maxlength="4" autocomplete="off" />
+    
+    <input type="text" id="newPin" placeholder="PIN i ri (për ndryshim)" maxlength="4" autocomplete="off" style="display:none;" />
+
+    <button id="btnAddUpdate">Shto / Ndrysho User</button>
+
     <div id="msg"></div>
   </div>
 
-  <div class="container" id="listContainer">
+  <div class="container" style="max-width: 600px;">
     <h2>Lista e Userave</h2>
-    <div id="userList">Duke ngarkuar...</div>
+    <table id="userTable" aria-label="Lista e Userave">
+      <thead>
+        <tr>
+          <th>Emri</th>
+          <th>PIN</th>
+          <th>Orari</th>
+          <th>Veprime</th>
+        </tr>
+      </thead>
+      <tbody id="userTableBody">
+        <tr><td colspan="4">Po ngarkohet lista...</td></tr>
+      </tbody>
+    </table>
   </div>
 
-<script>
-  const API_URL = "https://porta.armnis76.workers.dev";
+  <script>
+    const API_URL = "https://porta.armnis76.workers.dev";
 
-  const msgDiv = document.getElementById("msg");
-  const userListDiv = document.getElementById("userList");
+    const adminPassInput = document.getElementById("adminPass");
+    const nameInput = document.getElementById("name");
+    const pinInput = document.getElementById("pin");
+    const newPinInput = document.getElementById("newPin");
+    const msgDiv = document.getElementById("msg");
+    const userTableBody = document.getElementById("userTableBody");
+    const btnAddUpdate = document.getElementById("btnAddUpdate");
 
-  // Nxirr listen e userave nga worker
-  async function fetchUsers() {
-    msgDiv.textContent = "Duke ngarkuar userat...";
-    msgDiv.className = "";
+    let editingUser = null; // pin i userit që po modifikohet
 
-    try {
-      const res = await fetch(API_URL + "?list=1");
-      if (!res.ok) throw new Error("Gabim në marrjen e listës.");
+    // Funksioni për ngarkimin e listës së userave
+    async function loadUsers() {
+      userTableBody.innerHTML = `<tr><td colspan="4">Po ngarkohet lista...</td></tr>`;
+      msgDiv.textContent = "";
+      try {
+        const resp = await fetch(`${API_URL}?list=1`);
+        if (!resp.ok) throw new Error("Gabim në marrjen e listës");
+        const users = await resp.json();
 
-      const data = await res.json();
+        if (users.length === 0) {
+          userTableBody.innerHTML = `<tr><td colspan="4">Nuk ka usera.</td></tr>`;
+          return;
+        }
 
-      if (!Array.isArray(data)) throw new Error("Të dhëna të pasakta nga serveri.");
+        userTableBody.innerHTML = "";
+        users.forEach(({ name, pin, allowedFrom, allowedTo }) => {
+          userTableBody.innerHTML += `
+            <tr>
+              <td>${escapeHtml(name)}</td>
+              <td>${escapeHtml(pin)}</td>
+              <td>${allowedFrom}:00 - ${allowedTo}:00</td>
+              <td>
+                <button class="btn-small" onclick="startEdit('${escapeJs(pin)}', '${escapeJs(name)}')">Ndrysho</button>
+                <button class="btn-small" style="background:#ff9800;" onclick="removeUser('${escapeJs(pin)}')">Fshi</button>
+              </td>
+            </tr>
+          `;
+        });
+      } catch (e) {
+        userTableBody.innerHTML = `<tr><td colspan="4" class="error">Gabim në ngarkimin e listës: ${e.message}</td></tr>`;
+      }
+    }
 
-      if (data.length === 0) {
-        userListDiv.textContent = "Nuk ka usera të regjistruar.";
+    // Siguron që inputet të jenë të sigurta nga injektimet
+    function escapeHtml(text) {
+      return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+    function escapeJs(text) {
+      return text.replace(/'/g, "\\'");
+    }
+
+    // Nisja e editimit
+    function startEdit(pin, name) {
+      editingUser = pin;
+      nameInput.value = name;
+      pinInput.value = pin;
+      newPinInput.style.display = "block";
+      newPinInput.value = "";
+      btnAddUpdate.textContent = "Përditëso User";
+      msgDiv.textContent = "";
+    }
+
+    // Anulo editimin
+    function cancelEdit() {
+      editingUser = null;
+      nameInput.value = "";
+      pinInput.value = "";
+      newPinInput.style.display = "none";
+      newPinInput.value = "";
+      btnAddUpdate.textContent = "Shto / Ndrysho User";
+      msgDiv.textContent = "";
+    }
+
+    // Shto ose përditëso user
+    async function addOrUpdateUser() {
+      msgDiv.textContent = "";
+      const adminPass = adminPassInput.value.trim();
+      const name = nameInput.value.trim();
+      const pin = pinInput.value.trim();
+      const newPin = newPinInput.value.trim();
+
+      if (!adminPass) {
+        msgDiv.textContent = "Fjalëkalimi admin është i detyrueshëm!";
+        msgDiv.className = "error";
         return;
       }
+      if (!name) {
+        msgDiv.textContent = "Fusha Emri është e detyrueshme!";
+        msgDiv.className = "error";
+        return;
+      }
+      if (!pin || pin.length !== 4 || !/^\d{4}$/.test(pin)) {
+        msgDiv.textContent = "PIN duhet të jetë 4 shifra!";
+        msgDiv.className = "error";
+        return;
+      }
+      if (editingUser) {
+        // Përditësim
+        if (newPin && (newPin.length !== 4 || !/^\d{4}$/.test(newPin))) {
+          msgDiv.textContent = "PIN i ri duhet të jetë 4 shifra!";
+          msgDiv.className = "error";
+          return;
+        }
 
-      userListDiv.innerHTML = "";
+        const body = {
+          adminPass,
+          name,
+          pin: editingUser,
+          newPin: newPin || pin,
+          update: true
+        };
 
-      data.forEach(user => {
-        const div = document.createElement("div");
-        div.className = "userEntry";
-
-        const userInfo = document.createElement("div");
-        userInfo.className = "userInfo";
-        userInfo.textContent = `${user.name} — PIN: ${user.pin}`;
-
-        const delBtn = document.createElement("button");
-        delBtn.className = "btnSmall";
-        delBtn.textContent = "Fshij";
-        delBtn.onclick = () => fshijUser(user.pin, user.name);
-
-        div.appendChild(userInfo);
-        div.appendChild(delBtn);
-        userListDiv.appendChild(div);
-      });
-
-      msgDiv.textContent = "";
-      msgDiv.className = "";
-
-    } catch (err) {
-      msgDiv.textContent = "❌ " + err.message;
-      msgDiv.className = "error";
-    }
-  }
-
-  // Shto ose ndrysho user
-  async function shtoUser() {
-    const name = document.getElementById("name").value.trim();
-    const pin = document.getElementById("pin").value.trim();
-    const adminPass = document.getElementById("adminPass").value;
-
-    if (!name) {
-      alert("Shkruaj emrin e përdoruesit.");
-      return;
-    }
-    if (!pin || pin.length !== 4 || !/^\d{4}$/.test(pin)) {
-      alert("Futni një PIN 4-shifror të vlefshëm.");
-      return;
-    }
-    if (!adminPass) {
-      alert("Futni fjalëkalimin admin.");
-      return;
-    }
-
-    const body = { name, pin, adminPass };
-
-    msgDiv.textContent = "Po përpunoj...";
-    msgDiv.className = "";
-
-    try {
-      let res = await fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
-      });
-
-      let data = await res.json();
-
-      if (res.status === 409 && data.error && data.error.includes("Përdoruesi ekziston")) {
-        if (confirm(data.error + "\nDëshiron të ndryshosh PIN-in për këtë përdorues?")) {
-          body.update = true;
-          res = await fetch(API_URL, {
+        try {
+          const resp = await fetch(API_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(body)
           });
-          data = await res.json();
-          alert(data.success || data.error || "Pa mesazh");
-          if (res.ok) {
-            fetchUsers();
-            clearForm();
+          const data = await resp.json();
+          if (resp.ok) {
+            msgDiv.textContent = data.message;
+            msgDiv.className = "success";
+            cancelEdit();
+            loadUsers();
+          } else {
+            msgDiv.textContent = data.error || "Gabim gjatë përditësimit.";
+            msgDiv.className = "error";
           }
-          return;
-        } else {
-          alert("Shtoimi u anulua.");
-          msgDiv.textContent = "";
-          return;
+        } catch (e) {
+          msgDiv.textContent = "Gabim rrjeti: " + e.message;
+          msgDiv.className = "error";
+        }
+      } else {
+        // Shtim i ri
+        const body = {
+          adminPass,
+          name,
+          pin,
+          add: true
+        };
+        try {
+          const resp = await fetch(API_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body)
+          });
+          const data = await resp.json();
+          if (resp.ok) {
+            msgDiv.textContent = data.message;
+            msgDiv.className = "success";
+            nameInput.value = "";
+            pinInput.value = "";
+            loadUsers();
+          } else {
+            msgDiv.textContent = data.error || "Gabim gjatë shtimit.";
+            msgDiv.className = "error";
+          }
+        } catch (e) {
+          msgDiv.textContent = "Gabim rrjeti: " + e.message;
+          msgDiv.className = "error";
         }
       }
+    }
 
-      alert(data.success || data.error || "Pa mesazh");
-      if (res.ok) {
-        fetchUsers();
-        clearForm();
-      } else {
-        msgDiv.textContent = data.error || "Gabim i panjohur";
+    // Fshirja e userit
+    async function removeUser(pin) {
+      if (!confirm(`A je i sigurt që dëshiron të fshish PIN: ${pin}?`)) return;
+
+      const adminPass = adminPassInput.value.trim();
+      if (!adminPass) {
+        msgDiv.textContent = "Fjalëkalimi admin është i detyrueshëm për fshirje!";
+        msgDiv.className = "error";
+        return;
+      }
+
+      try {
+        const resp = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ adminPass, pin, remove: true }),
+        });
+        const data = await resp.json();
+        if (resp.ok) {
+          msgDiv.textContent = data.message;
+          msgDiv.className = "success";
+          loadUsers();
+          if (editingUser === pin) cancelEdit();
+        } else {
+          msgDiv.textContent = data.error || "Gabim gjatë fshirjes.";
+          msgDiv.className = "error";
+        }
+      } catch (e) {
+        msgDiv.textContent = "Gabim rrjeti: " + e.message;
         msgDiv.className = "error";
       }
-    } catch (err) {
-      msgDiv.textContent = "❌ " + err.message;
-      msgDiv.className = "error";
-    }
-  }
-
-  // Fshij user sipas PIN
-  async function fshijUser(pin, name) {
-    if (!confirm(`A dëshironi të fshini përdoruesin "${name}" me PIN: ${pin}?`)) {
-      return;
     }
 
-    const adminPass = prompt("Futni fjalëkalimin admin për fshirje:");
-    if (!adminPass) {
-      alert("Fshirja u anulua: Nuk u fut fjalëkalimi admin.");
-      return;
-    }
+    // Ngarko lista me fillim
+    loadUsers();
 
-    msgDiv.textContent = "Po fshihet...";
-    msgDiv.className = "";
+    btnAddUpdate.addEventListener("click", addOrUpdateUser);
 
-    try {
-      const res = await fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pin, adminPass, delete: true })
-      });
-
-      const data = await res.json();
-
-      alert(data.success || data.error || "Pa mesazh");
-
-      if (res.ok) {
-        fetchUsers();
-        msgDiv.textContent = "";
-      } else {
-        msgDiv.textContent = data.error || "Gabim i panjohur";
-        msgDiv.className = "error";
-      }
-    } catch (err) {
-      msgDiv.textContent = "❌ " + err.message;
-      msgDiv.className = "error";
-    }
-  }
-
-  function clearForm() {
-    document.getElementById("name").value = "";
-    document.getElementById("pin").value = "";
-    document.getElementById("adminPass").value = "";
-  }
-
-  // Ngarko fillimisht listen
-  fetchUsers();
-</script>
+  </script>
 
 </body>
 </html>
