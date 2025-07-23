@@ -79,7 +79,7 @@
       background: #218838;
     }
 
-    #msgHapja, #msgShtimi {
+    #msgHapja {
       margin-top: 1rem;
       font-size: 1.15rem;
       min-height: 1.5em;
@@ -109,4 +109,55 @@
     <input id="pin" type="password" maxlength="4" placeholder="Fut PIN-in këtu" autocomplete="off" />
     <button onclick="dergoPin()">Hap Derën</button>
     <div id="msgHapja"></div>
-  </div
+  </div>
+
+  <script>
+    async function dergoPin() {
+      const pinInput = document.getElementById("pin");
+      const msg = document.getElementById("msgHapja");
+      const pin = pinInput.value.trim();
+
+      if (!pin) {
+        msg.textContent = "Ju lutem fusni PIN-in.";
+        msg.className = "warning";
+        return;
+      }
+
+      msg.textContent = "⏳ Po kontrollohet...";
+      msg.className = "";
+
+      try {
+        const response = await fetch("https://porta.armnis76.workers.dev", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          mode: "cors",
+          body: JSON.stringify({ pin })
+        });
+
+        const text = await response.text();
+
+        if (response.ok) {
+          msg.textContent = text;
+          msg.className = "success";
+          pinInput.value = "";
+        } else {
+          msg.textContent = text;
+          msg.className = "warning";
+        }
+
+      } catch (error) {
+        msg.textContent = "❌ Gabim në rrjet.";
+        msg.className = "error";
+      }
+    }
+
+    // Shtyp enter për dërgim
+    document.getElementById("pin").addEventListener("keydown", function(e) {
+      if (e.key === "Enter") {
+        dergoPin();
+      }
+    });
+  </script>
+
+</body>
+</html>
