@@ -2,106 +2,122 @@
 <html lang="sq">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Menaxhimi i PIN-eve</title>
+  <title>Menaxhimi i Përdoruesve</title>
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; background: #f7f7f7; }
-    h1 { color: #333; }
-    input, button { padding: 8px; margin: 5px 0; width: 100%; max-width: 300px; }
-    .user-list { margin-top: 20px; }
-    .user-entry { background: #fff; padding: 10px; border: 1px solid #ccc; margin-bottom: 8px; }
-    .flex { display: flex; gap: 10px; flex-wrap: wrap; }
-    button { cursor: pointer; }
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    input, button { margin: 5px 0; padding: 8px; font-size: 16px; }
+    .user-entry { border: 1px solid #ccc; padding: 8px; margin-bottom: 10px; }
+    .hidden { display: none; }
   </style>
 </head>
 <body>
 
-<h1>Menaxhimi i Përdoruesve</h1>
-<form id="addUserForm">
-  <input type="text" id="name" placeholder="Emri" required>
-  <input type="text" id="pin" placeholder="PIN" required>
-  <input type="password" id="adminPass" placeholder="Fjalëkalimi Admin" required>
-  <button type="submit">Shto / Përditëso PIN</button>
-</form>
+  <h2>Menaxho PIN-at</h2>
+  <label>Emri:</label><br>
+  <input type="text" id="name"><br>
+  <label>PIN (4 shifra):</label><br>
+  <input type="text" id="pin" maxlength="4"><br>
+  <label>Fjalëkalimi Admin:</label><br>
+  <input type="password" id="adminPass"><br>
+  <button onclick="addOrUpdateUser()">Shto ose Përditëso</button>
 
-<div id="message"></div>
-<h2>Lista e Përdoruesve</h2>
-<div class="user-list" id="userList">Duke u ngarkuar...</div>
+  <h3>Lista e Përdoruesve</h3>
+  <div id="userList">Duke u ngarkuar...</div>
 
-<script>
-const API_URL = "https://porta.armnis76.workers.dev/";
+  <script>
+    const apiURL = 'https://porta.armnis76.workers.dev/';
 
-async function fetchUsers() {
-  const userList = document.getElementById("userList");
-  userList.innerHTML = "Duke u ngarkuar...";
-  try {
-    const res = await fetch(API_URL);
-    const data = await res.json();
-    userList.innerHTML = "";
-    for (const pin in data) {
-      const user = data[pin];
-      const div = document.createElement("div");
-      div.className = "user-entry";
-      div.innerHTML = `
-        <strong>${user.name}</strong> - PIN: ${pin}<br>
-        <div class="flex">
-          <button onclick="deleteUser('${pin}')">Fshi</button>
-        </div>
-      `;
-      userList.appendChild(div);
+    async function loadUsers() {
+      const listDiv = document.getElementById('userList');
+      listDiv.innerHTML = 'Duke u ngarkuar...';
+      try {
+        const res = await fetch(apiURL);
+        const users = await res.json();
+        listDiv.innerHTML = '';
+
+        Object.entries(users).forEach(([name, data]) => {
+          const div = document.createElement('div');
+          div.className = 'user-entry';
+          div.innerHTML = `
+            <b>${name}</b><br>
+            PIN: ${data.pin}<br>
+            Orari: ${data.allowedFrom}:00 - ${data.allowedTo}:00<br>
+            <button onclick="deleteUser('${name}')">🗑️ Fshi</button>
+          `;
+          listDiv.appendChild(div);
+        });
+
+        if (Object.keys(users).length === 0) {
+          listDiv.innerHTML = '🟡 Nuk ka asnjë përdorues.';
+        }
+      } catch (err) {
+        listDiv.innerHTML = '❌ Gabim gjatë ngarkimit të listës.';
+      }
     }
-  } catch (err) {
-    userList.innerHTML = "Gabim gjatë marrjes së të dhënave.";
-  }
-}
 
-async function deleteUser(pin) {
-  const adminPass = prompt("Shkruaj fjalëkalimin admin për fshirje:");
-  if (!adminPass) return;
-  try {
-    const res = await fetch(API_URL, {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ pin, adminPass })
-    });
-    const txt = await res.text();
-    alert(txt);
-    fetchUsers();
-  } catch (err) {
-    alert("Gabim gjatë fshirjes.");
-  }
-}
+    async function addOrUpdateUser() {
+      const name = document.getElementById('name').value.trim();
+      const pin = document.getElementById('pin').value.trim();
+      const adminPass = document.getElementById('adminPass').value;
 
-document.getElementById("addUserForm").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const name = document.getElementById("name").value.trim();
-  const pin = document.getElementById("pin").value.trim();
-  const adminPass = document.getElementById("adminPass").value.trim();
+      if (!name || !pin || !adminPass) {
+        alert('Plotësoni të gjitha fushat!');
+        return;
+      }
 
-  const message = document.getElementById("message");
-  message.textContent = "";
+      try {
+        const res = await fetch(apiURL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ add: true, name, pin, adminPass })
+        });
 
-  if (!name || !pin || !adminPass) {
-    message.textContent = "Plotësoni të gjitha fushat.";
-    return;
-  }
+        const msg = await res.text();
 
-  try {
-    const res = await fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, pin, add: true, adminPass })
-    });
-    const txt = await res.text();
-    message.textContent = txt;
-    fetchUsers();
-  } catch (err) {
-    message.textContent = "Gabim në shtim/përditësim.";
-  }
-});
+        if (res.status === 409 && msg.includes("Përdor")) {
+          // user exists, confirm update
+          const proceed = confirm(msg + "\n\nDëshiron ta përditësosh PIN-in?");
+          if (proceed) {
+            const updateRes = await fetch(apiURL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ add: true, name, pin, adminPass, update: true })
+            });
+            const updateMsg = await updateRes.text();
+            alert(updateMsg);
+          } else {
+            return;
+          }
+        } else {
+          alert(msg);
+        }
 
-fetchUsers();
-</script>
+        loadUsers();
+      } catch (err) {
+        alert('❌ Gabim gjatë shtimit/përditësimit.');
+      }
+    }
+
+    async function deleteUser(name) {
+      const adminPass = prompt(`Vendos fjalëkalimin admin për të fshirë ${name}:`);
+      if (!adminPass) return;
+
+      try {
+        const res = await fetch(apiURL, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, adminPass })
+        });
+        const msg = await res.text();
+        alert(msg);
+        loadUsers();
+      } catch (err) {
+        alert('❌ Gabim gjatë fshirjes.');
+      }
+    }
+
+    loadUsers();
+  </script>
 
 </body>
 </html>
