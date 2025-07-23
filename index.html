@@ -1,0 +1,44 @@
+<!-- pjesa për shtimin e PIN-it -->
+<div class="box">
+  <h2>Shto PIN të ri</h2>
+  <input id="newPin" type="text" placeholder="PIN i ri">
+  <br>
+  <input id="newName" type="text" placeholder="Emri për PIN-in">
+  <br>
+  <input id="adminPass" type="password" placeholder="Fjalëkalimi admin">
+  <br>
+  <button onclick="shtoPin()">Shto PIN</button>
+  <div id="responseShtimi" class="response"></div>
+</div>
+
+<script>
+  const apiUrl = "https://porta.armnis76.workers.dev";
+
+  async function hapPorten() {
+    const pin = document.getElementById("pin").value;
+
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pin })
+    });
+
+    const text = await response.text();
+    document.getElementById("responseHapja").innerText = text;
+  }
+
+  async function shtoPin() {
+    const pin = document.getElementById("newPin").value;
+    const name = document.getElementById("newName").value;
+    const adminPass = document.getElementById("adminPass").value;
+
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pin, name, adminPass, add: true })
+    });
+
+    const text = await response.text();
+    document.getElementById("responseShtimi").innerText = text;
+  }
+</script>
