@@ -3,36 +3,41 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Menaxho Përdoruesit dhe PIN-et</title>
+  <title>Menaxhimi i Përdoruesve - Hap Derën me PIN</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+
+    * {
+      box-sizing: border-box;
+    }
 
     body {
       margin: 0;
       min-height: 100vh;
       font-family: 'Poppins', sans-serif;
       background: linear-gradient(135deg, #4a90e2, #145374);
-      color: white;
+      color: #fff;
+      padding: 1rem;
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 1rem;
     }
 
     h1 {
-      margin-bottom: 1rem;
+      margin: 1.5rem 0;
       font-weight: 600;
-      font-size: 1.8rem;
+      font-size: 2rem;
       letter-spacing: 1px;
+      text-align: center;
     }
 
     .container {
       background: rgba(255, 255, 255, 0.1);
+      padding: 2rem 2.5rem;
       border-radius: 15px;
-      box-shadow: 0 8px 30px rgba(0,0,0,0.3);
-      padding: 2rem;
-      width: 350px;
-      max-width: 95vw;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+      width: 360px;
+      max-width: 90vw;
       margin-bottom: 2rem;
     }
 
@@ -40,257 +45,280 @@
       display: block;
       margin-bottom: 0.3rem;
       font-weight: 600;
+      font-size: 0.95rem;
     }
 
-    input[type="text"], input[type="password"] {
+    input[type="text"],
+    input[type="password"] {
       width: 100%;
-      padding: 0.6rem;
-      margin-bottom: 1rem;
-      border-radius: 8px;
+      padding: 0.9rem 1rem;
+      font-size: 1.1rem;
       border: none;
-      font-size: 1rem;
+      border-radius: 10px;
+      margin-bottom: 1rem;
       outline: none;
-      background: rgba(255,255,255,0.15);
-      color: white;
-      text-align: center;
+      background: rgba(255, 255, 255, 0.15);
+      color: #fff;
       transition: background 0.3s ease;
     }
-    input[type="text"]:focus, input[type="password"]:focus {
-      background: rgba(255,255,255,0.3);
+
+    input[type="text"]:focus,
+    input[type="password"]:focus {
+      background: rgba(255, 255, 255, 0.3);
       box-shadow: 0 0 8px #77b6ea;
     }
 
     button {
       width: 100%;
-      padding: 0.8rem;
+      padding: 1rem;
       background: #28a745;
       border: none;
       border-radius: 10px;
-      color: white;
+      color: #fff;
+      font-size: 1.15rem;
       font-weight: 600;
-      font-size: 1.1rem;
       cursor: pointer;
       transition: background 0.3s ease;
       margin-bottom: 1rem;
     }
+
     button:hover {
       background: #218838;
     }
 
-    .user-list {
-      max-height: 250px;
-      overflow-y: auto;
-      background: rgba(255,255,255,0.1);
-      padding: 1rem;
-      border-radius: 10px;
-      margin-bottom: 1rem;
-    }
-
-    .user-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0.3rem 0;
-      border-bottom: 1px solid rgba(255,255,255,0.2);
-    }
-
-    .user-name {
-      font-weight: 600;
-      flex: 1;
-    }
-
-    .user-pin {
-      font-family: monospace;
-      margin: 0 1rem;
-      flex: 1;
-      text-align: center;
-    }
-
-    .btn-delete {
-      background: #dc3545;
-      border: none;
-      padding: 0.3rem 0.6rem;
-      border-radius: 6px;
-      color: white;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.3s ease;
-    }
-    .btn-delete:hover {
-      background: #a71d2a;
-    }
-
-    #msg {
+    #msgAdmin {
       min-height: 1.5em;
       margin-bottom: 1rem;
-      text-align: center;
+      user-select: none;
       font-weight: 600;
     }
-    .success { color: #a8ff9e; }
-    .error { color: #ff6b6b; }
-    .warning { color: #ffcc00; }
 
+    .success {
+      color: #a8ff9e;
+    }
+    .warning {
+      color: #ffcc00;
+    }
+    .error {
+      color: #ff6b6b;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+
+    th, td {
+      padding: 0.5rem 0.75rem;
+      border-bottom: 1px solid rgba(255,255,255,0.2);
+      text-align: left;
+      font-size: 0.95rem;
+      user-select: text;
+    }
+
+    th {
+      font-weight: 700;
+      background: rgba(255,255,255,0.1);
+    }
+
+    td button {
+      background: #dc3545;
+      padding: 0.3rem 0.7rem;
+      font-size: 0.85rem;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      color: white;
+      transition: background 0.3s ease;
+    }
+    td button:hover {
+      background: #b02a37;
+    }
   </style>
 </head>
 <body>
 
-  <h1>Menaxho Përdoruesit dhe PIN-et</h1>
+  <h1>Menaxhimi i Përdoruesve - Hap Derën me PIN</h1>
 
   <div class="container">
-    <label for="adminPass">Fjalëkalimi Admin:</label>
-    <input id="adminPass" type="password" placeholder="Fut fjalëkalimin e administratorit" autocomplete="off" />
+    <label for="adminPass">Fjalëkalimi i Admin-it:</label>
+    <input type="password" id="adminPass" placeholder="Fut fjalëkalimin e admin-it" autocomplete="off" />
 
-    <label for="name">Emri:</label>
-    <input id="name" type="text" placeholder="Fut emrin e përdoruesit" autocomplete="off" />
+    <label for="name">Emri i Përdoruesit:</label>
+    <input type="text" id="name" placeholder="Fut emrin e përdoruesit" autocomplete="off" />
 
-    <label for="pin">PIN:</label>
-    <input id="pin" type="text" maxlength="4" placeholder="Fut PIN-in" autocomplete="off" />
+    <label for="pinAdmin">PIN (4 shifra):</label>
+    <input type="password" id="pinAdmin" maxlength="4" placeholder="Fut PIN-in" autocomplete="off" />
 
-    <button id="btnAddUser">Shto / Ndrysho Përdorues</button>
-    <div id="msg"></div>
+    <button onclick="shtoUser()">Shto / Ndrysho Përdorues</button>
+
+    <div id="msgAdmin"></div>
   </div>
 
   <div class="container">
-    <h2>Lista e përdoruesve:</h2>
-    <div class="user-list" id="userList"></div>
+    <h2>Lista e Përdoruesve me PIN</h2>
+    <table id="userList">
+      <thead>
+        <tr>
+          <th>Emri</th>
+          <th>PIN</th>
+          <th>Veprime</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Userat do shtohen këtu me JS -->
+      </tbody>
+    </table>
   </div>
 
-  <script>
-    const API_URL = "https://porta.armnis76.workers.dev"; // Ndrysho me url të Worker-it tënd
+<script>
+  const API_URL = "https://porta.armnis76.workers.dev";
 
-    const adminPassInput = document.getElementById("adminPass");
-    const nameInput = document.getElementById("name");
-    const pinInput = document.getElementById("pin");
-    const msgDiv = document.getElementById("msg");
-    const userListDiv = document.getElementById("userList");
-    const btnAddUser = document.getElementById("btnAddUser");
+  const msgDiv = document.getElementById("msgAdmin");
+  const tbody = document.querySelector("#userList tbody");
 
-    async function fetchUsers() {
-      try {
-        const res = await fetch(API_URL, { method: "GET" });
-        if (!res.ok) throw new Error("Gabim në marrjen e listës");
-        const data = await res.json();
-        renderUsers(data);
-      } catch (err) {
-        msgDiv.textContent = err.message;
-        msgDiv.className = "error";
-      }
-    }
+  async function fetchUsers() {
+    msgDiv.textContent = "📡 Po ngarkohet lista...";
+    msgDiv.className = "";
 
-    function renderUsers(users) {
-      userListDiv.innerHTML = "";
+    try {
+      // Në worker nuk ka endpoint të veçantë për listim, por do marrim të gjithë userat nga KV me rreth 100 çelësa (Cloudflare limite)
+      // Në KV nuk kemi funksion listimi automatik nga front, prandaj duhet të shtosh një endpoint në worker për listimin.
+      // Por në mungesë të tij, do marrim userat me një endpoint të thjeshtë që ti krijosh ti në worker.js.
+      // Për shembull, ti mund të shtosh në worker endpoint GET me ?list=1 që të kthen gjithë pin/name JSON.
+
+      const response = await fetch(API_URL + "?list=1");
+      if (!response.ok) throw new Error("Gabim gjatë ngarkimit të listës.");
+
+      const users = await response.json();
+
+      tbody.innerHTML = "";
+
       if (Object.keys(users).length === 0) {
-        userListDiv.textContent = "Nuk ka përdorues të regjistruar.";
+        tbody.innerHTML = `<tr><td colspan="3" style="text-align:center;">Nuk ka përdorues.</td></tr>`;
+        msgDiv.textContent = "";
         return;
       }
-      for (const [pin, info] of Object.entries(users)) {
-        const div = document.createElement("div");
-        div.className = "user-item";
 
-        const nameSpan = document.createElement("span");
-        nameSpan.className = "user-name";
-        nameSpan.textContent = info.name;
+      for (const [pin, user] of Object.entries(users)) {
+        const tr = document.createElement("tr");
 
-        const pinSpan = document.createElement("span");
-        pinSpan.className = "user-pin";
-        pinSpan.textContent = pin;
+        const tdName = document.createElement("td");
+        tdName.textContent = user.name;
+        tr.appendChild(tdName);
 
-        const btnDelete = document.createElement("button");
-        btnDelete.className = "btn-delete";
-        btnDelete.textContent = "Fshi";
-        btnDelete.onclick = () => deleteUser(pin);
+        const tdPin = document.createElement("td");
+        tdPin.textContent = pin;
+        tr.appendChild(tdPin);
 
-        div.appendChild(nameSpan);
-        div.appendChild(pinSpan);
-        div.appendChild(btnDelete);
+        const tdDel = document.createElement("td");
+        const delBtn = document.createElement("button");
+        delBtn.textContent = "Fshi";
+        delBtn.onclick = () => fshiUser(pin, user.name);
+        tdDel.appendChild(delBtn);
+        tr.appendChild(tdDel);
 
-        userListDiv.appendChild(div);
+        tbody.appendChild(tr);
       }
+
+      msgDiv.textContent = "";
+    } catch (err) {
+      msgDiv.textContent = "⚠️ " + err.message;
+      msgDiv.className = "error";
+    }
+  }
+
+  async function shtoUser() {
+    const name = document.getElementById("name").value.trim();
+    const pin = document.getElementById("pinAdmin").value.trim();
+    const adminPass = document.getElementById("adminPass").value.trim();
+
+    if (!name || !pin || !adminPass) {
+      alert("Ju lutem plotësoni të gjitha fushat.");
+      return;
+    }
+    if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
+      alert("PIN duhet të jetë 4 shifra.");
+      return;
     }
 
-    async function deleteUser(pin) {
-      if (!confirm(`A je i sigurt që dëshiron të fshish PIN-in ${pin}?`)) return;
-      const adminPass = adminPassInput.value.trim();
-      if (!adminPass) {
-        alert("Futni fjalëkalimin admin për fshirje.");
-        return;
-      }
+    let body = { add: true, adminPass, name, pin };
 
-      try {
-        const res = await fetch(API_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ pin, delete: true, adminPass })
-        });
-        const text = await res.text();
-        msgDiv.textContent = text;
-        msgDiv.className = res.ok ? "success" : "error";
-        if (res.ok) fetchUsers();
-      } catch (err) {
-        msgDiv.textContent = "Gabim në rrjet.";
-        msgDiv.className = "error";
-      }
-    }
+    try {
+      let res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
 
-    btnAddUser.onclick = async () => {
-      const adminPass = adminPassInput.value.trim();
-      const name = nameInput.value.trim();
-      const pin = pinInput.value.trim();
+      let text = await res.text();
 
-      if (!adminPass || !name || !pin) {
-        msgDiv.textContent = "Ju lutem plotësoni të gjitha fushat.";
-        msgDiv.className = "warning";
-        return;
-      }
-
-      // Shto ose ndrysho user
-      try {
-        // Fillimisht dërgo me add:true, update:false
-        let res = await fetch(API_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ add: true, adminPass, name, pin, update: false })
-        });
-        let text = await res.text();
-
-        if (res.status === 409 && text.includes("Përdoruesi ekziston")) {
-          // Nëse përdoruesi ekziston, pyet nëse doni ndryshim PIN
-          if (confirm(`${text}\nDëshiron të ndryshosh PIN-in për këtë përdorues?`)) {
-            res = await fetch(API_URL, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ add: true, adminPass, name, pin, update: true })
-            });
-            text = await res.text();
-            msgDiv.textContent = text;
-            msgDiv.className = res.ok ? "success" : "error";
-            if (res.ok) fetchUsers();
-            return;
-          } else {
-            msgDiv.textContent = "Shtoimi u anulua.";
-            msgDiv.className = "warning";
-            return;
+      if (res.status === 409 && text.includes("Përdoruesi ekziston")) {
+        if (confirm(text + "\nDëshiron të ndryshosh PIN-in për këtë përdorues?")) {
+          body.update = true;
+          res = await fetch(API_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body)
+          });
+          text = await res.text();
+          alert(text);
+          if (res.ok) {
+            fetchUsers();
+            clearForm();
           }
+          return;
+        } else {
+          alert("Shtoimi u anulua.");
+          return;
         }
-
-        msgDiv.textContent = text;
-        msgDiv.className = res.ok ? "success" : "error";
-        if (res.ok) {
-          // Pas suksesi, pastro fushat dhe rifresko listën
-          nameInput.value = "";
-          pinInput.value = "";
-          fetchUsers();
-        }
-      } catch (err) {
-        msgDiv.textContent = "Gabim në rrjet.";
-        msgDiv.className = "error";
       }
-    };
 
-    // Load lista kur hapet faqja
-    fetchUsers();
+      alert(text);
+      if (res.ok) {
+        fetchUsers();
+        clearForm();
+      }
+    } catch (err) {
+      alert("Gabim në rrjet: " + err.message);
+    }
+  }
 
-  </script>
+  async function fshiUser(pin, name) {
+    if (!confirm(`A je i sigurt që do fshish përdoruesin "${name}" me PIN: ${pin}?`)) {
+      return;
+    }
+
+    const adminPass = document.getElementById("adminPass").value.trim();
+    if (!adminPass) {
+      alert("Fjalëkalimi i admin-it duhet për të fshirë përdorues.");
+      return;
+    }
+
+    try {
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ delete: true, adminPass, pin })
+      });
+
+      const text = await res.text();
+      alert(text);
+      if (res.ok) fetchUsers();
+    } catch (err) {
+      alert("Gabim në rrjet: " + err.message);
+    }
+  }
+
+  function clearForm() {
+    document.getElementById("name").value = "";
+    document.getElementById("pinAdmin").value = "";
+  }
+
+  // Ngarko listën sapo ngarkohet faqja
+  fetchUsers();
+</script>
 
 </body>
 </html>
