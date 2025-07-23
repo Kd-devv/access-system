@@ -1,140 +1,168 @@
-<!DOCTYPE html>
-<html lang="sq">
-<head>
-  <meta charset="UTF-8" />
-  <title>Menaxhimi i Përdoruesve</title>
-  <style>
-    body { font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
-    th { background: #f0f0f0; }
-    input, button { padding: 8px; margin: 4px 0; width: 100%; }
-    .msg { margin-top: 10px; padding: 10px; border-radius: 4px; }
-    .success { background: #d4edda; color: #155724; }
-    .error { background: #f8d7da; color: #721c24; }
-  </style>
-</head>
-<body>
-  <h1>👤 Menaxhimi i Përdoruesve</h1>
+const ADMIN_PASSWORD = "porta123";
 
-  <input id="name" placeholder="Emri" />
-  <input id="pin" placeholder="PIN" />
-  <input id="allowedFrom" placeholder="Nga ora (0–23)" type="number" min="0" max="23" />
-  <input id="allowedTo" placeholder="Deri ora (1–24)" type="number" min="1" max="24" />
-  <input id="adminPass" placeholder="Fjalëkalimi admin" type="password" />
-  <button onclick="addUser()">Shto / Përditëso</button>
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+  "Content-Type": "application/json"
+};
 
-  <div class="msg" id="msg"></div>
+function jsonResponse(data, status = 200) {
+  return new Response(JSON.stringify(data), { status, headers: corsHeaders });
+}
 
-  <table id="userTable">
-    <thead>
-      <tr>
-        <th>PIN</th>
-        <th>Emri</th>
-        <th>Orari</th>
-        <th>Veprim</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+addEventListener("fetch", event => {
+  event.respondWith(handleRequest(event.request));
+});
 
-  <script>
-    const apiUrl = "https://porta.armnis76.workers.dev";
+async function logAccess(name, status, request) {
+  const now = new Date().toISOString();
+  const ip = request.headers.get("cf-connecting-ip") || "n/a";
+  const logKey = `log-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+  const logValue = {
+    user: name,
+    time: now,
+    ip,
+    status
+  };
+  await PIN_DB.put(logKey, JSON.stringify(logValue));
+}
 
-    async function fetchUsers() {
-      try {
-        const res = await fetch(apiUrl);
-        const data = await res.json();
-        const tbody = document.querySelector("#userTable tbody");
-        tbody.innerHTML = "";
+async function handleRequest(request) {
+  const { method } = request;
+  const url = new URL(request.url);
 
-        for (const [name, user] of Object.entries(data)) {
-          const tr = document.createElement("tr");
+  if (method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: corsHeaders });
+  }
 
-          const tdPin = document.createElement("td");
-          tdPin.textContent = user.pin || "—";
-          tr.appendChild(tdPin);
+  // === SHFAQ LOGE ===
+  if (url.pathname === "/logs" && method === "GET") {
+    const logs = {};
+    const entries = await PIN_DB.list({ prefix: "log-", limit: 1000 });
+    for (const entry of entries.keys) {
+      const val = await PIN_DB.get(entry.name);
+      if (val) logs[entry.name] = JSON.parse(val);
+    }
+    return jsonResponse(logs);
+  }
 
-          const tdName = document.createElement("td");
-          tdName.textContent = name;
-          tr.appendChild(tdName);
+  if (method === "GET") {
+    // SHFAQ PËRDORUESIT
+    const list = {};
+    const entries = await PIN_DB.list({ limit: 1000 });
+    for (const key of entries.keys) {
+      if (key.name.startsWith("log-")) continue;
+      const val = await PIN_DB.get(key.name);
+      list[key.name] = JSON.parse(val);
+    }
+    return jsonResponse(list);
+  }
 
-          const tdTime = document.createElement("td");
-          tdTime.textContent = `${user.allowedFrom || 0}:00 - ${user.allowedTo || 24}:00`;
-          tr.appendChild(tdTime);
-
-          const tdAction = document.createElement("td");
-          const delBtn = document.createElement("button");
-          delBtn.textContent = "Fshij";
-          delBtn.onclick = () => deleteUser(name);
-          tdAction.appendChild(delBtn);
-          tr.appendChild(tdAction);
-
-          tbody.appendChild(tr);
-        }
-      } catch (err) {
-        showMsg("Gabim: " + err.message, "error");
-      }
+  if (method === "POST") {
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return jsonResponse({ error: "⚠️ JSON i pavlefshëm." }, 400);
     }
 
-    async function addUser() {
-      const name = document.getElementById("name").value.trim();
-      const pin = document.getElementById("pin").value.trim();
-      const from = parseInt(document.getElementById("allowedFrom").value || "0", 10);
-      const to = parseInt(document.getElementById("allowedTo").value || "24", 10);
-      const adminPass = document.getElementById("adminPass").value;
+    const { name, pin, adminPass, allowedFromDateTime, allowedToDateTime } = body;
 
-      if (!name || !pin || !adminPass) {
-        return showMsg("Ju lutem plotësoni të gjitha fushat", "error");
+    // === SHTO/UPDATE NGA ADMINI ===
+    if (adminPass !== undefined) {
+      if (adminPass !== ADMIN_PASSWORD) {
+        return jsonResponse({ error: "🚫 Fjalëkalimi admin i pasaktë." }, 403);
+      }
+      if (!name || !pin) {
+        return jsonResponse({ error: "❗ Emri dhe PIN kërkohen." }, 400);
       }
 
-      try {
-        const res = await fetch(apiUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name,
-            pin,
-            allowedFrom: from,
-            allowedTo: to,
-            adminPass,
-            add: true
-          })
-        });
+      const existing = await PIN_DB.get(name);
+      let oldData = existing ? JSON.parse(existing) : {};
 
-        const text = await res.text();
-        showMsg(text, res.ok ? "success" : "error");
-        if (res.ok) fetchUsers();
-      } catch (err) {
-        showMsg("Gabim në rrjet: " + err.message, "error");
+      const userData = {
+        name,
+        pin,
+        allowedFromDateTime: allowedFromDateTime || oldData.allowedFromDateTime || null,
+        allowedToDateTime: allowedToDateTime || oldData.allowedToDateTime || null
+      };
+
+      await PIN_DB.put(name, JSON.stringify(userData));
+      return jsonResponse({ message: `✅ Përdoruesi u ruajt për ${name}` });
+    }
+
+    // === KËRKESË AKSESI ===
+    if (!name || !pin) {
+      return jsonResponse({ error: "❗ Emri dhe PIN kërkohen." }, 400);
+    }
+
+    const data = await PIN_DB.get(name);
+    if (!data) {
+      await logAccess(name, "user_not_found", request);
+      return jsonResponse({ error: "❌ Përdoruesi nuk ekziston." }, 404);
+    }
+
+    const user = JSON.parse(data);
+    if (user.pin !== pin) {
+      await logAccess(name, "wrong_pin", request);
+      return jsonResponse({ error: "🔑 PIN i gabuar." }, 403);
+    }
+
+    const now = new Date();
+    const from = user.allowedFromDateTime ? new Date(user.allowedFromDateTime) : new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+    const to = user.allowedToDateTime ? new Date(user.allowedToDateTime) : new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+
+    if (now < from || now >= to) {
+      await logAccess(name, "out_of_hours", request);
+      return jsonResponse({
+        error: `⏰ Jashtë orarit të lejuar (${from.toLocaleString()} – ${to.toLocaleString()}).`
+      }, 403);
+    }
+
+    // Komanda për IFTTT
+    const iftttUrl = "https://maker.ifttt.com/trigger/Porta/with/key/b5U1h_z5XAuGBFHczy0Mvr";
+    try {
+      const r = await fetch(iftttUrl, { method: "POST" });
+      if (r.ok) {
+        await logAccess(name, "success", request);
+        return jsonResponse({ message: `🔓 Porta u hap për ${user.name}.` });
+      } else {
+        await logAccess(name, "ifttt_failed", request);
+        return jsonResponse({ error: "❗ Dështoi lidhja me IFTTT." }, 500);
       }
+    } catch (err) {
+      await logAccess(name, "network_error", request);
+      return jsonResponse({ error: "🌐 Gabim rrjeti: " + err.message }, 500);
+    }
+  }
+
+  if (method === "DELETE") {
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return jsonResponse({ error: "⚠️ JSON i pavlefshëm." }, 400);
     }
 
-    async function deleteUser(name) {
-      const adminPass = prompt("Fjalëkalimi admin për fshirje:");
-      if (!adminPass) return;
+    const { name, adminPass } = body;
 
-      try {
-        const res = await fetch(apiUrl, {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, adminPass })
-        });
-        const text = await res.text();
-        showMsg(text, res.ok ? "success" : "error");
-        if (res.ok) fetchUsers();
-      } catch (err) {
-        showMsg("Gabim në rrjet: " + err.message, "error");
-      }
+    if (adminPass !== ADMIN_PASSWORD) {
+      return jsonResponse({ error: "🚫 Fjalëkalimi admin i gabuar." }, 403);
     }
 
-    function showMsg(text, type) {
-      const msg = document.getElementById("msg");
-      msg.textContent = text;
-      msg.className = `msg ${type}`;
+    if (!name) {
+      return jsonResponse({ error: "⚠️ Emri mungon për fshirje." }, 400);
     }
 
-    fetchUsers();
-  </script>
-</body>
-</html>
+    const existing = await PIN_DB.get(name);
+    if (!existing) {
+      return jsonResponse({ error: "❌ Ky përdorues nuk ekziston." }, 404);
+    }
+
+    await PIN_DB.delete(name);
+    return jsonResponse({ message: `🗑️ Përdoruesi ${name} u fshi me sukses.` });
+  }
+
+  return jsonResponse({ error: "❌ Metodë e pambështetur." }, 405);
+}
