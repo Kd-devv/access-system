@@ -2,19 +2,79 @@
 <html lang="sq">
 <head>
   <meta charset="UTF-8" />
-  <title>Log i Aksesimeve - i Kompletuar</title>
+  <title>Log i Aksesimeve - me Filtra, Faqetim & Eksport CSV</title>
   <style>
-    body { font-family: sans-serif; max-width: 900px; margin: auto; padding: 20px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    body { font-family: sans-serif; max-width: 1000px; margin: auto; padding: 20px; }
+    h1 { margin-bottom: 10px; }
+    .controls {
+      display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px;
+      align-items: center;
+    }
+    .controls > * {
+      flex: 1 1 150px;
+      min-width: 120px;
+    }
+    label {
+      font-weight: bold;
+      display: block;
+      margin-bottom: 4px;
+    }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
     th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
     th { background: #f0f0f0; }
-    h1 { margin-bottom: 10px; }
-    .btn { padding: 8px 16px; margin: 10px 0; font-size: 16px; cursor: pointer; }
+    .btn {
+      padding: 8px 16px; font-size: 14px; cursor: pointer;
+      border: none; background-color: #007bff; color: white;
+      border-radius: 4px;
+      transition: background-color 0.3s;
+    }
+    .btn:hover { background-color: #0056b3; }
+    .pagination {
+      margin-top: 15px;
+      text-align: center;
+      user-select: none;
+    }
+    .pagination button {
+      margin: 0 5px;
+    }
   </style>
 </head>
 <body>
+
   <h1>📋 Log i Aksesimeve</h1>
-  <button class="btn" onclick="loadLogs()">🔄 Rifresko</button>
+
+  <div class="controls">
+    <div>
+      <label for="searchName">Kerko Emrin:</label>
+      <input id="searchName" type="text" placeholder="Shkruaj emrin..."/>
+    </div>
+    <div>
+      <label for="statusFilter">Filtro Statusin:</label>
+      <select id="statusFilter">
+        <option value="">Të gjithë</option>
+        <option value="success">Sukses</option>
+        <option value="wrong_pin">PIN gabim</option>
+        <option value="user_not_found">Përdoruesi nuk ekziston</option>
+        <option value="out_of_hours">Jashtë orarit</option>
+        <option value="ifttt_failed">IFTTT dështoi</option>
+        <option value="network_error">Gabim rrjeti</option>
+      </select>
+    </div>
+    <div>
+      <label for="dateFrom">Data Nga:</label>
+      <input id="dateFrom" type="date"/>
+    </div>
+    <div>
+      <label for="dateTo">Data Deri:</label>
+      <input id="dateTo" type="date"/>
+    </div>
+    <div style="align-self:flex-end;">
+      <button class="btn" id="btnFilter">Filtro</button>
+    </div>
+    <div style="align-self:flex-end;">
+      <button class="btn" id="btnExport">Eksporto CSV</button>
+    </div>
+  </div>
 
   <table>
     <thead>
@@ -31,50 +91,166 @@
     </tbody>
   </table>
 
+  <div class="pagination">
+    <button id="prevPage" class="btn" disabled>⟨ Paraprak</button>
+    <span id="pageInfo"></span>
+    <button id="nextPage" class="btn" disabled>Pasardhës ⟩</button>
+  </div>
+
   <script>
     const logsUrl = "https://porta.armnis76.workers.dev/logs";
     const usersUrl = "https://porta.armnis76.workers.dev";
 
-    async function loadLogs() {
+    let allLogs = [];
+    let allUsers = {};
+    let filteredLogs = [];
+
+    const pageSize = 15;
+    let currentPage = 1;
+
+    const logTableBody = document.getElementById("logTable");
+    const searchNameInput = document.getElementById("searchName");
+    const statusFilterSelect = document.getElementById("statusFilter");
+    const dateFromInput = document.getElementById("dateFrom");
+    const dateToInput = document.getElementById("dateTo");
+    const btnFilter = document.getElementById("btnFilter");
+    const btnExport = document.getElementById("btnExport");
+    const prevPageBtn = document.getElementById("prevPage");
+    const nextPageBtn = document.getElementById("nextPage");
+    const pageInfoSpan = document.getElementById("pageInfo");
+
+    async function fetchData() {
       try {
-        // 1) Merr loget
-        const logsRes = await fetch(logsUrl);
+        const [logsRes, usersRes] = await Promise.all([
+          fetch(logsUrl),
+          fetch(usersUrl)
+        ]);
         if (!logsRes.ok) throw new Error("Nuk mund të merret lista e logeve");
-        const logsData = await logsRes.json();
-
-        // 2) Merr përdoruesit
-        const usersRes = await fetch(usersUrl);
         if (!usersRes.ok) throw new Error("Nuk mund të merret lista e përdoruesve");
-        const usersData = await usersRes.json();
 
-        // 3) Përfito listën e logeve (si array), rendit sipas kohe (më të fundit lart)
-        const logs = Object.values(logsData)
-          .sort((a, b) => new Date(b.time) - new Date(a.time));
+        const logsData = await logsRes.json();
+        allUsers = await usersRes.json();
 
-        // 4) Përgatit rreshtat e tabelës me lidhjen me PIN
-        const rows = logs.map(log => {
-          const user = usersData[log.user] || {};
-          const pin = user.pin || "—";
+        allLogs = Object.values(logsData)
+          .map(log => {
+            return {
+              ...log,
+              timeObj: new Date(log.time)
+            };
+          })
+          .sort((a, b) => b.timeObj - a.timeObj);
+
+        currentPage = 1;
+        applyFilters();
+      } catch (err) {
+        alert("Gabim në marrjen e të dhënave: " + err.message);
+        logTableBody.innerHTML = '<tr><td colspan="5">Gabim në marrjen e të dhënave.</td></tr>';
+      }
+    }
+
+    function applyFilters() {
+      const nameFilter = searchNameInput.value.trim().toLowerCase();
+      const statusFilter = statusFilterSelect.value;
+      const dateFrom = dateFromInput.value ? new Date(dateFromInput.value) : null;
+      const dateTo = dateToInput.value ? new Date(dateToInput.value) : null;
+
+      filteredLogs = allLogs.filter(log => {
+        if (nameFilter && !log.user.toLowerCase().includes(nameFilter)) return false;
+        if (statusFilter && log.status !== statusFilter) return false;
+        if (dateFrom && log.timeObj < dateFrom) return false;
+        if (dateTo) {
+          // Shto 1 ditë tek dateTo për të përfshirë tërë ditën e zgjedhur
+          const dateToEnd = new Date(dateTo);
+          dateToEnd.setDate(dateToEnd.getDate() + 1);
+          if (log.timeObj >= dateToEnd) return false;
+        }
+        return true;
+      });
+
+      currentPage = 1;
+      renderPage();
+    }
+
+    function renderPage() {
+      const start = (currentPage - 1) * pageSize;
+      const end = start + pageSize;
+      const pageItems = filteredLogs.slice(start, end);
+
+      if (pageItems.length === 0) {
+        logTableBody.innerHTML = '<tr><td colspan="5">Nuk ka loge për kriteret e zgjedhura.</td></tr>';
+      } else {
+        logTableBody.innerHTML = pageItems.map(log => {
+          const userData = allUsers[log.user] || {};
+          const pin = userData.pin || "—";
           return `
             <tr>
               <td>${log.user}</td>
               <td>${pin}</td>
-              <td>${new Date(log.time).toLocaleString()}</td>
+              <td>${log.timeObj.toLocaleString()}</td>
               <td>${log.ip}</td>
               <td>${log.status}</td>
             </tr>`;
         }).join("");
-
-        // 5) Vendos në tabelë ose mesazh nëse bosh
-        document.getElementById("logTable").innerHTML = rows || '<tr><td colspan="5">Nuk ka loge.</td></tr>';
-
-      } catch (err) {
-        alert("Gabim në marrjen e të dhënave: " + err.message);
-        document.getElementById("logTable").innerHTML = '<tr><td colspan="5">Gabim në marrjen e të dhënave.</td></tr>';
       }
+
+      pageInfoSpan.textContent = `Faqja ${currentPage} nga ${Math.max(1, Math.ceil(filteredLogs.length / pageSize))}`;
+      prevPageBtn.disabled = currentPage === 1;
+      nextPageBtn.disabled = currentPage >= Math.ceil(filteredLogs.length / pageSize);
     }
 
-    loadLogs();
+    btnFilter.addEventListener("click", applyFilters);
+
+    prevPageBtn.addEventListener("click", () => {
+      if (currentPage > 1) {
+        currentPage--;
+        renderPage();
+      }
+    });
+
+    nextPageBtn.addEventListener("click", () => {
+      if (currentPage < Math.ceil(filteredLogs.length / pageSize)) {
+        currentPage++;
+        renderPage();
+      }
+    });
+
+    btnExport.addEventListener("click", () => {
+      if (filteredLogs.length === 0) {
+        alert("Nuk ka të dhëna për eksport.");
+        return;
+      }
+      const csvRows = [];
+      csvRows.push(["Emri", "PIN", "Data & Ora", "IP", "Statusi"].join(","));
+      filteredLogs.forEach(log => {
+        const userData = allUsers[log.user] || {};
+        const pin = userData.pin || "";
+        // Escape if needed
+        const row = [
+          `"${log.user}"`,
+          `"${pin}"`,
+          `"${log.timeObj.toLocaleString()}"`,
+          `"${log.ip}"`,
+          `"${log.status}"`
+        ].join(",");
+        csvRows.push(row);
+      });
+
+      const csvString = csvRows.join("\n");
+      const blob = new Blob([csvString], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `logs_export_${new Date().toISOString().slice(0,10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+
+    // Ngarko fillimisht të dhënat
+    fetchData();
   </script>
+
 </body>
 </html>
