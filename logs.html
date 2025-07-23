@@ -68,6 +68,11 @@
       <label for="dateTo">Data Deri:</label>
       <input id="dateTo" type="date"/>
     </div>
+
+    <div style="align-self:flex-end;">
+      <button class="btn" id="btnReload">🔄 Rifresko</button>
+    </div>
+
     <div style="align-self:flex-end;">
       <button class="btn" id="btnFilter">Filtro</button>
     </div>
@@ -115,12 +120,14 @@
     const dateToInput = document.getElementById("dateTo");
     const btnFilter = document.getElementById("btnFilter");
     const btnExport = document.getElementById("btnExport");
+    const btnReload = document.getElementById("btnReload");
     const prevPageBtn = document.getElementById("prevPage");
     const nextPageBtn = document.getElementById("nextPage");
     const pageInfoSpan = document.getElementById("pageInfo");
 
     async function fetchData() {
       try {
+        logTableBody.innerHTML = '<tr><td colspan="5">Ngarkohet...</td></tr>';
         const [logsRes, usersRes] = await Promise.all([
           fetch(logsUrl),
           fetch(usersUrl)
@@ -199,6 +206,8 @@
     }
 
     btnFilter.addEventListener("click", applyFilters);
+
+    btnReload.addEventListener("click", fetchData);
 
     prevPageBtn.addEventListener("click", () => {
       if (currentPage > 1) {
