@@ -30,6 +30,18 @@
     #message {
       margin-top: 1rem;
       font-weight: bold;
+      min-height: 50px;
+    }
+    .access-calendar {
+      margin-top: 20px;
+      width: 100%;
+    }
+    .access-time {
+      color: #4CAF50;
+      font-weight: bold;
+    }
+    .no-access {
+      color: #f44336;
     }
   </style>
 </head>
@@ -42,6 +54,11 @@
     <div id="message"></div>
   </form>
 
+  <div class="access-calendar" id="accessCalendar">
+    <h3>Orari juaj i aksesit:</h3>
+    <div id="accessTimes"></div>
+  </div>
+
   <script>
     const API_URL = "https://porta.armnis76.workers.dev";
 
@@ -51,17 +68,65 @@
       const pin = document.getElementById("pin").value.trim();
       const message = document.getElementById("message");
       message.textContent = "Po verifikohet...";
+      message.style.color = "black";
 
-      const res = await fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, pin })
-      });
+      try {
+        const res = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, pin })
+        });
 
-      const text = await res.text();
-      message.textContent = text;
-      message.style.color = res.ok ? "green" : "red";
+        const data = await res.json();
+        if (res.ok) {
+          message.textContent = data.message;
+          message.style.color = "green";
+          // Shfaq intervalet kohore nëse ka
+          showUserAccessTimes(name);
+        } else {
+          message.textContent = data.error;
+          message.style.color = "red";
+        }
+      } catch (err) {
+        message.textContent = "Gabim në rrjet: " + err.message;
+        message.style.color = "red";
+      }
     });
+
+    // Shfaq intervalet kohore të përdoruesit
+    async function showUserAccessTimes(name) {
+      const accessTimesDiv = document.getElementById("accessTimes");
+      accessTimesDiv.innerHTML = "<p>Po ngarkohen intervalet kohore...</p>";
+
+      try {
+        const res = await fetch(API_URL);
+        const data = await res.json();
+        const user = data[name];
+
+        if (user && user.timeSlots && user.timeSlots.length > 0) {
+          accessTimesDiv.innerHTML = "";
+          user.timeSlots.forEach(slot => {
+            const start = new Date(slot.start);
+            const end = new Date(slot.end);
+            const now = new Date();
+            const isActive = now >= start && now <= end;
+
+            const slotDiv = document.createElement("div");
+            slotDiv.innerHTML = `
+              <p class="${isActive ? 'access-time' : 'no-access'}">
+                ${start.toLocaleString()} - ${end.toLocaleString()}
+                ${isActive ? '✅ (Aktive)' : '❌ (I skaduar)'}
+              </p>
+            `;
+            accessTimesDiv.appendChild(slotDiv);
+          });
+        } else {
+          accessTimesDiv.innerHTML = "<p>Nuk keni asnjë interval kohor të definuar.</p>";
+        }
+      } catch (err) {
+        accessTimesDiv.innerHTML = "<p>Gabim gjatë ngarkimit të intervaleve kohore.</p>";
+      }
+    }
   </script>
 </body>
 </html>
