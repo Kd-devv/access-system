@@ -104,8 +104,10 @@
 
   <script>
     const logsUrl = "https://porta.armnis76.workers.dev/logs";
+    const usersUrl = "https://porta.armnis76.workers.dev";
 
     let allLogs = [];
+    let allUsers = {};
     let filteredLogs = [];
 
     const pageSize = 15;
@@ -126,10 +128,15 @@
     async function fetchData() {
       try {
         logTableBody.innerHTML = '<tr><td colspan="5">Ngarkohet...</td></tr>';
-        const logsRes = await fetch(logsUrl);
+        const [logsRes, usersRes] = await Promise.all([
+          fetch(logsUrl),
+          fetch(usersUrl)
+        ]);
         if (!logsRes.ok) throw new Error("Nuk mund të merret lista e logeve");
+        if (!usersRes.ok) throw new Error("Nuk mund të merret lista e përdoruesve");
 
         const logsData = await logsRes.json();
+        allUsers = await usersRes.json();
 
         allLogs = Object.values(logsData)
           .map(log => {
@@ -187,10 +194,12 @@
         logTableBody.innerHTML = '<tr><td colspan="5">Nuk ka loge për kriteret e zgjedhura.</td></tr>';
       } else {
         logTableBody.innerHTML = pageItems.map(log => {
+          const userData = allUsers[log.user] || {};
+          const pin = userData.pin || "—";
           return `
             <tr>
               <td>${log.user}</td>
-              <td>${log.pin || "—"}</td>
+              <td>${pin}</td>
               <td>${log.timeObj.toLocaleString()}</td>
               <td>${log.ip}</td>
               <td>${log.status}</td>
@@ -204,6 +213,7 @@
     }
 
     btnFilter.addEventListener("click", applyFilters);
+
     btnReload.addEventListener("click", fetchData);
 
     prevPageBtn.addEventListener("click", () => {
@@ -228,9 +238,11 @@
       const csvRows = [];
       csvRows.push(["Emri", "PIN", "Data & Ora", "IP", "Statusi"].join(","));
       filteredLogs.forEach(log => {
+        const userData = allUsers[log.user] || {};
+        const pin = userData.pin || "";
         const row = [
           `"${log.user}"`,
-          `"${log.pin || ''}"`,
+          `"${pin}"`,
           `"${log.timeObj.toLocaleString()}"`,
           `"${log.ip}"`,
           `"${log.status}"`
