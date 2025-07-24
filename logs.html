@@ -1,271 +1,76 @@
 <!DOCTYPE html>
 <html lang="sq">
 <head>
-  <meta charset="UTF-8" />
-  <title>Log i Aksesimeve - me Filtra, Faqetim & Eksport CSV</title>
+  <meta charset="UTF-8">
+  <title>Logjet e Aksesit</title>
   <style>
-    body { font-family: sans-serif; max-width: 1000px; margin: auto; padding: 20px; }
-    h1 { margin-bottom: 10px; }
-    .controls {
-      display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px;
-      align-items: center;
-    }
-    .controls > * {
-      flex: 1 1 150px;
-      min-width: 120px;
-    }
-    label {
-      font-weight: bold;
-      display: block;
-      margin-bottom: 4px;
-    }
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    body { font-family: sans-serif; max-width: 900px; margin: auto; padding: 20px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
     th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
     th { background: #f0f0f0; }
-    .btn {
-      padding: 8px 16px; font-size: 14px; cursor: pointer;
-      border: none; background-color: #007bff; color: white;
-      border-radius: 4px;
-      transition: background-color 0.3s;
-    }
-    .btn:hover { background-color: #0056b3; }
-    .pagination {
-      margin-top: 15px;
-      text-align: center;
-      user-select: none;
-    }
-    .pagination button {
-      margin: 0 5px;
-    }
+    .success { background: #d4edda; }
+    .error { background: #f8d7da; }
   </style>
 </head>
 <body>
+  <h1>📝 Logjet e Aksesit</h1>
 
-  <h1>📋 Log i Aksesimeve</h1>
-
-  <div class="controls">
-    <div>
-      <label for="searchName">Kerko Emrin:</label>
-      <input id="searchName" type="text" placeholder="Shkruaj emrin..."/>
-    </div>
-    <div>
-      <label for="statusFilter">Filtro Statusin:</label>
-      <select id="statusFilter">
-        <option value="">Të gjithë</option>
-        <option value="success">Sukses</option>
-        <option value="wrong_pin">PIN gabim</option>
-        <option value="user_not_found">Përdoruesi nuk ekziston</option>
-        <option value="out_of_hours">Jashtë orarit</option>
-        <option value="ifttt_failed">IFTTT dështoi</option>
-        <option value="network_error">Gabim rrjeti</option>
-      </select>
-    </div>
-    <div>
-      <label for="dateFrom">Data Nga:</label>
-      <input id="dateFrom" type="date"/>
-    </div>
-    <div>
-      <label for="dateTo">Data Deri:</label>
-      <input id="dateTo" type="date"/>
-    </div>
-
-    <div style="align-self:flex-end;">
-      <button class="btn" id="btnReload">🔄 Rifresko</button>
-    </div>
-
-    <div style="align-self:flex-end;">
-      <button class="btn" id="btnFilter">Filtro</button>
-    </div>
-    <div style="align-self:flex-end;">
-      <button class="btn" id="btnExport">Eksporto CSV</button>
-    </div>
-  </div>
-
-  <table>
+  <table id="logTable">
     <thead>
       <tr>
+        <th>Koha</th>
         <th>Emri</th>
-        <th>PIN</th>
-        <th>Data & Ora</th>
+        <th>PIN i përdorur</th>
         <th>IP</th>
         <th>Statusi</th>
       </tr>
     </thead>
-    <tbody id="logTable">
-      <tr><td colspan="5">Ngarkohet...</td></tr>
-    </tbody>
+    <tbody></tbody>
   </table>
 
-  <div class="pagination">
-    <button id="prevPage" class="btn" disabled>⟨ Paraprak</button>
-    <span id="pageInfo"></span>
-    <button id="nextPage" class="btn" disabled>Pasardhës ⟩</button>
-  </div>
-
   <script>
-    const logsUrl = "https://porta.armnis76.workers.dev/logs";
-    const usersUrl = "https://porta.armnis76.workers.dev";
+    const apiUrl = "https://porta.armnis76.workers.dev/logs";
 
-    let allLogs = [];
-    let allUsers = {};
-    let filteredLogs = [];
+    async function loadLogs() {
+      const res = await fetch(apiUrl);
+      const data = await res.json();
+      const tbody = document.querySelector("#logTable tbody");
+      tbody.innerHTML = "";
 
-    const pageSize = 15;
-    let currentPage = 1;
+      const logs = Object.entries(data)
+        .sort((a, b) => b[0].localeCompare(a[0]))
+        .map(entry => entry[1]);
 
-    const logTableBody = document.getElementById("logTable");
-    const searchNameInput = document.getElementById("searchName");
-    const statusFilterSelect = document.getElementById("statusFilter");
-    const dateFromInput = document.getElementById("dateFrom");
-    const dateToInput = document.getElementById("dateTo");
-    const btnFilter = document.getElementById("btnFilter");
-    const btnExport = document.getElementById("btnExport");
-    const btnReload = document.getElementById("btnReload");
-    const prevPageBtn = document.getElementById("prevPage");
-    const nextPageBtn = document.getElementById("nextPage");
-    const pageInfoSpan = document.getElementById("pageInfo");
+      for (const log of logs) {
+        const tr = document.createElement("tr");
+        if (log.status === "success") tr.classList.add("success");
+        else if (log.status !== "user_not_found") tr.classList.add("error");
 
-    async function fetchData() {
-      try {
-        logTableBody.innerHTML = '<tr><td colspan="5">Ngarkohet...</td></tr>';
-        const [logsRes, usersRes] = await Promise.all([
-          fetch(logsUrl),
-          fetch(usersUrl)
-        ]);
-        if (!logsRes.ok) throw new Error("Nuk mund të merret lista e logeve");
-        if (!usersRes.ok) throw new Error("Nuk mund të merret lista e përdoruesve");
+        const tdTime = document.createElement("td");
+        tdTime.textContent = new Date(log.time).toLocaleString();
+        tr.appendChild(tdTime);
 
-        const logsData = await logsRes.json();
-        allUsers = await usersRes.json();
+        const tdUser = document.createElement("td");
+        tdUser.textContent = log.user || "—";
+        tr.appendChild(tdUser);
 
-        allLogs = Object.values(logsData)
-          .map(log => {
-            return {
-              ...log,
-              timeObj: new Date(log.time)
-            };
-          })
-          .sort((a, b) => b.timeObj - a.timeObj);
+        const tdPin = document.createElement("td");
+        tdPin.textContent = log.pin || "—";
+        tr.appendChild(tdPin);
 
-        currentPage = 1;
-        applyFilters();
-      } catch (err) {
-        alert("Gabim në marrjen e të dhënave: " + err.message);
-        logTableBody.innerHTML = '<tr><td colspan="5">Gabim në marrjen e të dhënave.</td></tr>';
+        const tdIP = document.createElement("td");
+        tdIP.textContent = log.ip || "—";
+        tr.appendChild(tdIP);
+
+        const tdStatus = document.createElement("td");
+        tdStatus.textContent = log.status;
+        tr.appendChild(tdStatus);
+
+        tbody.appendChild(tr);
       }
     }
 
-    function applyFilters() {
-      const nameFilter = searchNameInput.value.trim().toLowerCase();
-      const statusFilter = statusFilterSelect.value;
-      const dateFrom = dateFromInput.value ? new Date(dateFromInput.value) : null;
-      const dateTo = dateToInput.value ? new Date(dateToInput.value) : null;
-
-      filteredLogs = allLogs.filter(log => {
-        if (nameFilter) {
-          const nameParts = log.user.toLowerCase().split(/\s+/);
-          const match = nameParts.some(part => part.startsWith(nameFilter));
-          if (!match) return false;
-        }
-
-        if (statusFilter && log.status !== statusFilter) return false;
-
-        if (dateFrom && log.timeObj < dateFrom) return false;
-
-        if (dateTo) {
-          const dateToEnd = new Date(dateTo);
-          dateToEnd.setDate(dateToEnd.getDate() + 1);
-          if (log.timeObj >= dateToEnd) return false;
-        }
-
-        return true;
-      });
-
-      currentPage = 1;
-      renderPage();
-    }
-
-    function renderPage() {
-      const start = (currentPage - 1) * pageSize;
-      const end = start + pageSize;
-      const pageItems = filteredLogs.slice(start, end);
-
-      if (pageItems.length === 0) {
-        logTableBody.innerHTML = '<tr><td colspan="5">Nuk ka loge për kriteret e zgjedhura.</td></tr>';
-      } else {
-        logTableBody.innerHTML = pageItems.map(log => {
-          const userData = allUsers[log.user] || {};
-          const pin = userData.pin || "—";
-          return `
-            <tr>
-              <td>${log.user}</td>
-              <td>${pin}</td>
-              <td>${log.timeObj.toLocaleString()}</td>
-              <td>${log.ip}</td>
-              <td>${log.status}</td>
-            </tr>`;
-        }).join("");
-      }
-
-      pageInfoSpan.textContent = `Faqja ${currentPage} nga ${Math.max(1, Math.ceil(filteredLogs.length / pageSize))}`;
-      prevPageBtn.disabled = currentPage === 1;
-      nextPageBtn.disabled = currentPage >= Math.ceil(filteredLogs.length / pageSize);
-    }
-
-    btnFilter.addEventListener("click", applyFilters);
-
-    btnReload.addEventListener("click", fetchData);
-
-    prevPageBtn.addEventListener("click", () => {
-      if (currentPage > 1) {
-        currentPage--;
-        renderPage();
-      }
-    });
-
-    nextPageBtn.addEventListener("click", () => {
-      if (currentPage < Math.ceil(filteredLogs.length / pageSize)) {
-        currentPage++;
-        renderPage();
-      }
-    });
-
-    btnExport.addEventListener("click", () => {
-      if (filteredLogs.length === 0) {
-        alert("Nuk ka të dhëna për eksport.");
-        return;
-      }
-      const csvRows = [];
-      csvRows.push(["Emri", "PIN", "Data & Ora", "IP", "Statusi"].join(","));
-      filteredLogs.forEach(log => {
-        const userData = allUsers[log.user] || {};
-        const pin = userData.pin || "";
-        const row = [
-          `"${log.user}"`,
-          `"${pin}"`,
-          `"${log.timeObj.toLocaleString()}"`,
-          `"${log.ip}"`,
-          `"${log.status}"`
-        ].join(",");
-        csvRows.push(row);
-      });
-
-      const csvString = csvRows.join("\n");
-      const blob = new Blob([csvString], { type: "text/csv" });
-      const url = URL.createObjectURL(blob);
-
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `logs_export_${new Date().toISOString().slice(0,10)}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    });
-
-    // Ngarko fillimisht të dhënat
-    fetchData();
+    loadLogs();
   </script>
-
 </body>
 </html>
