@@ -41,12 +41,16 @@
     let allLogs = [];
 
     async function loadLogs() {
-      const res = await fetch(apiUrl);
-      const data = await res.json();
-      allLogs = Object.entries(data)
-        .sort((a, b) => b[0].localeCompare(a[0]))
-        .map(entry => entry[1]);
-      renderLogs();
+      try {
+        const res = await fetch(apiUrl);
+        const data = await res.json();
+        allLogs = Object.entries(data)
+          .sort((a, b) => b[0].localeCompare(a[0]))
+          .map(entry => entry[1]);
+        renderLogs();
+      } catch (err) {
+        alert("Gabim gjatë ngarkimit të logeve: " + err.message);
+      }
     }
 
     function renderLogs() {
@@ -91,7 +95,9 @@
       const a = document.createElement('a');
       a.href = url;
       a.download = 'logjet_aksesit.csv';
+      document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
       URL.revokeObjectURL(url);
     }
 
