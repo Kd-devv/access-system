@@ -26,15 +26,33 @@
       margin: 1rem 0;
       padding: 0.7rem;
       font-size: 1rem;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
     }
     #message {
       margin-top: 1rem;
-      font-weight: bold;
       min-height: 50px;
+      padding: 0.5rem;
+      border-radius: 4px;
+    }
+    .success {
+      color: #155724;
+      background-color: #d4edda;
+    }
+    .error {
+      color: #721c24;
+      background-color: #f8d7da;
     }
     .access-calendar {
       margin-top: 20px;
       width: 100%;
+      max-width: 400px;
     }
     .access-time {
       color: #4CAF50;
@@ -67,8 +85,9 @@
       const name = document.getElementById("name").value.trim();
       const pin = document.getElementById("pin").value.trim();
       const message = document.getElementById("message");
+      
       message.textContent = "Po verifikohet...";
-      message.style.color = "black";
+      message.className = "";
 
       try {
         const res = await fetch(API_URL, {
@@ -78,23 +97,23 @@
         });
 
         const data = await res.json();
+        
         if (res.ok) {
           message.textContent = data.message;
-          message.style.color = "green";
+          message.className = "success";
         } else {
-          message.textContent = data.error;
-          message.style.color = "red";
+          message.textContent = data.error || "Gabim i panjohur";
+          message.className = "error";
         }
         
-        // Shfaq intervalet kohore pas përgjigjes
-        showUserAccessTimes(name);
+        // Shfaq intervalet kohore edhe nëse ka gabim në hapje
+        await showUserAccessTimes(name);
       } catch (err) {
         message.textContent = "Gabim në rrjet: " + err.message;
-        message.style.color = "red";
+        message.className = "error";
       }
     });
 
-    // Shfaq intervalet kohore të përdoruesit
     async function showUserAccessTimes(name) {
       if (!name) return;
       
@@ -102,15 +121,15 @@
       accessTimesDiv.innerHTML = "<p>Po ngarkohen intervalet kohore...</p>";
 
       try {
-        // Përdor endpoint-in e mbrojtur për të marrë të dhënat e përdoruesit
-        const res = await fetch(`https://porta.armnis76.workers.dev`, {
-          headers: { "Authorization": "Bearer StrongAccessPassword123!" }
-        });
+        const res = await fetch(`https://porta.armnis76.workers.dev/user?name=${encodeURIComponent(name)}`);
         
-        const data = await res.json();
-        const user = data[name];
+        if (!res.ok) {
+          throw new Error(await res.text());
+        }
+        
+        const user = await res.json();
 
-        if (user && user.timeSlots && user.timeSlots.length > 0) {
+        if (user?.timeSlots?.length > 0) {
           accessTimesDiv.innerHTML = "";
           user.timeSlots.forEach(slot => {
             const start = new Date(slot.start);
@@ -131,7 +150,8 @@
           accessTimesDiv.innerHTML = "<p>Nuk keni asnjë interval kohor të definuar.</p>";
         }
       } catch (err) {
-        accessTimesDiv.innerHTML = "<p>Gabim gjatë ngarkimit të intervaleve kohore.</p>";
+        console.error("Gabim në shfaqjen e intervaleve:", err);
+        accessTimesDiv.innerHTML = "<p>Nuk u mundësua ngarkimi i intervaleve kohore.</p>";
       }
     }
   </script>
