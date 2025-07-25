@@ -60,7 +60,7 @@
   </div>
 
   <script>
-    const API_URL = "https://porta.armnis76.workers.dev";
+    const API_URL = "https://porta.armnis76.workers.dev/access";
 
     document.getElementById("accessForm").addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -81,12 +81,13 @@
         if (res.ok) {
           message.textContent = data.message;
           message.style.color = "green";
-          // Shfaq intervalet kohore nëse ka
-          showUserAccessTimes(name);
         } else {
           message.textContent = data.error;
           message.style.color = "red";
         }
+        
+        // Shfaq intervalet kohore pas përgjigjes
+        showUserAccessTimes(name);
       } catch (err) {
         message.textContent = "Gabim në rrjet: " + err.message;
         message.style.color = "red";
@@ -95,11 +96,17 @@
 
     // Shfaq intervalet kohore të përdoruesit
     async function showUserAccessTimes(name) {
+      if (!name) return;
+      
       const accessTimesDiv = document.getElementById("accessTimes");
       accessTimesDiv.innerHTML = "<p>Po ngarkohen intervalet kohore...</p>";
 
       try {
-        const res = await fetch(API_URL);
+        // Përdor endpoint-in e mbrojtur për të marrë të dhënat e përdoruesit
+        const res = await fetch(`https://porta.armnis76.workers.dev`, {
+          headers: { "Authorization": "Bearer StrongAccessPassword123!" }
+        });
+        
         const data = await res.json();
         const user = data[name];
 
