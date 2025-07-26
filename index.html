@@ -154,6 +154,8 @@
         <input type="text" id="filterInput" placeholder="Filtro sipas emrit, IP, statusit..." />
         <button onclick="loadLogs()">🔁 Rifresko</button>
         <button onclick="exportCSV()">📤 Eksporto CSV</button>
+        <button onclick="deleteFilteredLogs()" style="background-color: #f44336;">🗑️ Fshij të filtruarat</button>
+        <button onclick="deleteAllLogs()" style="background-color: #f44336;">🗑️ Fshij të gjitha</button>
       </div>
 
       <table id="logTable">
@@ -532,6 +534,75 @@
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+    }
+
+    async function deleteFilteredLogs() {
+      const filter = document.getElementById("filterInput").value.toLowerCase();
+      const logsToDelete = allLogs.filter(log => {
+        const values = [log.user, log.pin, log.ip, log.status].map(v => (v || "").toLowerCase());
+        return filter === "" || values.some(v => v.includes(filter));
+      });
+
+      if (logsToDelete.length === 0) {
+        showMsg("Nuk ka logje për të fshirë sipas këtij filtri", "error");
+        return;
+      }
+
+      if (!confirm(`Jeni i sigurt që dëshironi të fshini ${logsToDelete.length} logje?`)) {
+        return;
+      }
+
+      try {
+        const res = await makeAuthRequest(`${apiUrl}/logs`, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            logs: logsToDelete,
+            adminPass: prompt("Fjalëkalimi admin për fshirje:")
+          })
+        });
+
+        if (res.status === 401) {
+          sessionStorage.removeItem("authToken");
+          window.location.reload();
+          return;
+        }
+
+        const text = await res.text();
+        showMsg(text, res.ok ? "success" : "error");
+        if (res.ok) loadLogs();
+      } catch (err) {
+        showMsg("Gabim në fshirjen e logjeve: " + err.message, "error");
+      }
+    }
+
+    async function deleteAllLogs() {
+      if (!confirm("Jeni i sigurt që dëshironi të fshini TË GJITHA logjet?")) {
+        return;
+      }
+
+      try {
+        const res = await makeAuthRequest(`${apiUrl}/logs`, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            all: true,
+            adminPass: prompt("Fjalëkalimi admin për fshirje:")
+          })
+        });
+
+        if (res.status === 401) {
+          sessionStorage.removeItem("authToken");
+          window.location.reload();
+          return;
+        }
+
+        const text = await res.text();
+        showMsg(text, res.ok ? "success" : "error");
+        if (res.ok) loadLogs();
+      } catch (err) {
+        showMsg("Gabim në fshirjen e logjeve: " + err.message, "error");
+      }
     }
 
     // Initialize logs filter
