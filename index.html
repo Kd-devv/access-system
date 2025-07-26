@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <title>Sistemi i Kontrollit të Aksesit</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
     body { font-family: sans-serif; max-width: 1000px; margin: auto; padding: 20px; }
     
@@ -153,7 +154,7 @@
       <div class="controls">
         <input type="text" id="filterInput" placeholder="Filtro sipas emrit, IP, statusit..." />
         <button onclick="loadLogs()">🔁 Rifresko</button>
-        <button onclick="exportCSV()">📤 Eksporto CSV</button>
+        <button onclick="exportXLSX()">📤 Eksporto Excel</button>
         <button onclick="deleteFilteredLogs()" style="background-color: #f44336;">🗑️ Fshij të filtruarat</button>
         <button onclick="deleteAllLogs()" style="background-color: #f44336;">🗑️ Fshij të gjitha</button>
       </div>
@@ -512,35 +513,86 @@
       }
     }
 
-    function exportCSV() {
-      let csv = "Koha,Emri,PIN,IP,Status\n";
-      for (const log of allLogs) {
-        const row = [
-          new Date(log.time).toLocaleString(),
-          log.user || "",
-          log.pin || "",
-          log.ip || "",
-          log.status || ""
-        ].map(val => `"${val.replace(/"/g, '""')}"`).join(",");
-        csv += row + "\n";
-      }
+    function exportXLSX() {
+      try {
+        // Prepare the data
+        const data = [
+          ["Koha", "Emri", "PIN i përdorur", "IP", "Statusi"], // Header row
+          ...allLogs.map(log => [
+            new Date(log.time).toLocaleString(),
+            log.user || "-",
+            log.pin || "-",
+            log.ip || "-",
+            log.status || "-"
+          ])
+        ];
 
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'logjet_aksesit.csv';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+        // Create a worksheet
+        const ws = XLSX.utils.aoa_to_sheet(data);
+
+        // Set column widths
+        ws['!cols'] = [
+          { wch: 25 }, // Time column width
+          { wch: 25 }, // Name column width
+          { wch: 20 }, // PIN column width
+          { wch: 20 }, // IP column width
+          { wch: 25 }  // Status column width
+        ];
+
+        // Add styling to the header row
+        if (!ws['!rows']) ws['!rows'] = [];
+        ws['!rows'][0] = { hpt: 25 }; // Header row height
+        
+        // Make header bold and centered
+        const headerRange = XLSX.utils.decode_range(ws['!ref']);
+        for (let C = headerRange.s.c; C <= headerRange.e.c; ++C) {
+          const cellAddress = XLSX.utils.encode_cell({ r: 0, c: C });
+          if (!ws[cellAddress]) continue;
+          ws[cellAddress].s = { 
+            font: { bold: true, color: { rgb: "FFFFFF" } },
+            fill: { fgColor: { rgb: "4CAF50" } },
+            alignment: { horizontal: "center" }
+          };
+        }
+
+        // Add borders to all cells
+        const range = XLSX.utils.decode_range(ws['!ref']);
+        for (let R = range.s.r; R <= range.e.r; ++R) {
+          for (let C = range.s.c; C <= range.e.c; ++C) {
+            const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+            if (!ws[cellAddress]) ws[cellAddress] = { t: 's', v: '' };
+            if (!ws[cellAddress].s) ws[cellAddress].s = {};
+            ws[cellAddress].s.border = {
+              top: { style: "thin", color: { rgb: "000000" } },
+              bottom: { style: "thin", color: { rgb: "000000" } },
+              left: { style: "thin", color: { rgb: "000000" } },
+              right: { style: "thin", color: { rgb: "000000" } }
+            };
+          }
+        }
+
+        // Create a workbook
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Logjet e Aksesit");
+
+        // Generate the file and trigger download
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`;
+        const timeStr = `${now.getHours().toString().padStart(2, '0')}-${now.getMinutes().toString().padStart(2, '0')}`;
+        XLSX.writeFile(wb, `Logjet_Aksesit_${dateStr}_${timeStr}.xlsx`);
+
+        showMsg("Skeda Excel u eksportua me sukses!", "success");
+      } catch (err) {
+        showMsg("Gabim gjatë eksportimit: " + err.message, "error");
+        console.error("Export error:", err);
+      }
     }
 
     async function deleteFilteredLogs() {
       const filter = document.getElementById("filterInput").value.toLowerCase();
       const logsToDelete = allLogs.filter(log => {
         const values = [log.user, log.pin, log.ip, log.status].map(v => (v || "").toLowerCase());
-        return filter === "" || values.some(v => v.includes(filter));
+        return filter === "" || values.some(v => v.includes(filter)));
       });
 
       if (logsToDelete.length === 0) {
