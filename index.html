@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <title>Sistemi i Kontrollit të Aksesit</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
     body { font-family: sans-serif; max-width: 1000px; margin: auto; padding: 20px; }
     
@@ -153,7 +154,7 @@
       <div class="controls">
         <input type="text" id="filterInput" placeholder="Filtro sipas emrit, IP, statusit..." />
         <button onclick="loadLogs()">🔁 Rifresko</button>
-        <button onclick="exportCSV()">📤 Eksporto CSV</button>
+        <button onclick="exportXLSX()">📤 Eksporto Excel</button>
         <button onclick="deleteFilteredLogs()" style="background-color: #f44336;">🗑️ Fshij të filtruarat</button>
         <button onclick="deleteAllLogs()" style="background-color: #f44336;">🗑️ Fshij të gjitha</button>
       </div>
@@ -512,28 +513,48 @@
       }
     }
 
-    function exportCSV() {
-      let csv = "Koha,Emri,PIN,IP,Status\n";
-      for (const log of allLogs) {
-        const row = [
-          new Date(log.time).toLocaleString(),
-          log.user || "",
-          log.pin || "",
-          log.ip || "",
-          log.status || ""
-        ].map(val => `"${val.replace(/"/g, '""')}"`).join(",");
-        csv += row + "\n";
-      }
+    function exportXLSX() {
+      try {
+        // Prepare data for Excel
+        const data = [
+          ["Koha", "Emri", "PIN i përdorur", "IP", "Statusi"], // Headers
+          ...allLogs.map(log => [
+            new Date(log.time).toLocaleString(), // Formatted date
+            log.user || "—",                     // Name with fallback
+            log.pin || "—",                      // PIN with fallback
+            log.ip || "—",                       // IP with fallback
+            log.status                           // Status
+          ])
+        ];
 
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'logjet_aksesit.csv';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+        // Create worksheet
+        const ws = XLSX.utils.aoa_to_sheet(data);
+        
+        // Set column widths
+        ws['!cols'] = [
+          { wch: 20 }, // Time column
+          { wch: 20 }, // Name column
+          { wch: 15 }, // PIN column
+          { wch: 15 }, // IP column
+          { wch: 20 }  // Status column
+        ];
+
+        // Create workbook
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Logjet e Aksesit");
+
+        // Generate filename with timestamp
+        const now = new Date();
+        const timestamp = `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2,'0')}-${now.getDate().toString().padStart(2,'0')}_${now.getHours().toString().padStart(2,'0')}-${now.getMinutes().toString().padStart(2,'0')}`;
+
+        // Export the file
+        XLSX.writeFile(wb, `Logjet_Aksesit_${timestamp}.xlsx`);
+        
+        showMsg("Skeda Excel u eksportua me sukses!", "success");
+      } catch (err) {
+        console.error("Export error:", err);
+        showMsg("Gabim gjatë eksportimit: " + err.message, "error");
+      }
     }
 
     async function deleteFilteredLogs() {
