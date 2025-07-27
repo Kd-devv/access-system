@@ -49,51 +49,108 @@
       color: #721c24;
       background-color: #f8d7da;
     }
-    .access-calendar {
-      margin-top: 20px;
-      width: 100%;
-      max-width: 400px;
-    }
-    .access-time {
-      color: #4CAF50;
-      font-weight: bold;
-    }
-    .no-access {
-      color: #f44336;
-    }
   </style>
 </head>
 <body>
-  <h2>Hyr me PIN</h2>
+  <script>
+    (async function() {
+      // 1. Check for auth data
+      const authData = JSON.parse(sessionStorage.getItem("authData") || {});
+      if (!authData.token) {
+        window.location.replace("verify.html");
+        return;
+      }
+
+      // 2. Verify with server
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const nonce = urlParams.get('nonce');
+        const fingerprint = await getDeviceFingerprint();
+        
+        if (authData.fp !== fingerprint) {
+          throw new Error("Device mismatch");
+        }
+
+        const res = await fetch("https://porta.armnis76.workers.dev/check-token", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            token: authData.token,
+            nonce,
+            fingerprint
+          })
+        });
+
+        if (!res.ok) {
+          throw new Error("Token verification failed");
+        }
+
+        const data = await res.json();
+        sessionStorage.setItem("authData", JSON.stringify({
+          ...authData,
+          currentNonce: data.nonce
+        }));
+      } catch (err) {
+        sessionStorage.removeItem("authData");
+        window.location.replace("verify.html");
+      }
+    })();
+
+    async function getDeviceFingerprint() {
+      const components = [
+        navigator.userAgent,
+        navigator.hardwareConcurrency,
+        screen.width + 'x' + screen.height,
+        navigator.deviceMemory || 'unknown'
+      ];
+      
+      const hash = await crypto.subtle.digest(
+        'SHA-256',
+        new TextEncoder().encode(components.join('|'))
+      );
+      return Array.from(new Uint8Array(hash))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+    }
+  </script>
+
+  <h2>Hapja e Derës</h2>
   <form id="accessForm">
     <input type="text" id="name" placeholder="Emri i përdoruesit" required />
-    <input type="password" id="pin" placeholder="PIN" required />
+    <input type="password" id="password" placeholder="Fjalëkalimi" required />
     <button type="submit">Hap Derën</button>
     <div id="message"></div>
   </form>
 
-  <div class="access-calendar" id="accessCalendar">
-    <h3>Orari juaj i aksesit:</h3>
-    <div id="accessTimes"></div>
-  </div>
-
   <script>
-    const API_URL = "https://porta.armnis76.workers.dev/access";
-
     document.getElementById("accessForm").addEventListener("submit", async (e) => {
       e.preventDefault();
+      
+      const authData = JSON.parse(sessionStorage.getItem("authData") || {});
+      if (!authData.token) {
+        window.location.replace("verify.html");
+        return;
+      }
+
       const name = document.getElementById("name").value.trim();
-      const pin = document.getElementById("pin").value.trim();
+      const password = document.getElementById("password").value.trim();
       const message = document.getElementById("message");
       
       message.textContent = "Po verifikohet...";
       message.className = "";
 
       try {
-        const res = await fetch(API_URL, {
+        const res = await fetch("https://porta.armnis76.workers.dev/access", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, pin })
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${authData.token}`
+          },
+          body: JSON.stringify({ 
+            name, 
+            password,
+            nonce: authData.currentNonce
+          })
         });
 
         const data = await res.json();
@@ -104,56 +161,16 @@
         } else {
           message.textContent = data.error || "Gabim i panjohur";
           message.className = "error";
+          if (res.status === 401) {
+            sessionStorage.removeItem("authData");
+            setTimeout(() => window.location.replace("verify.html"), 2000);
+          }
         }
-        
-        // Shfaq intervalet kohore edhe nëse ka gabim në hapje
-        await showUserAccessTimes(name);
       } catch (err) {
-        message.textContent = "Gabim në rrjet: " + err.message;
+        message.textContent = "Gabim në rrjet";
         message.className = "error";
       }
     });
-
-    async function showUserAccessTimes(name) {
-      if (!name) return;
-      
-      const accessTimesDiv = document.getElementById("accessTimes");
-      accessTimesDiv.innerHTML = "<p>Po ngarkohen intervalet kohore...</p>";
-
-      try {
-        const res = await fetch(`https://porta.armnis76.workers.dev/user?name=${encodeURIComponent(name)}`);
-        
-        if (!res.ok) {
-          throw new Error(await res.text());
-        }
-        
-        const user = await res.json();
-
-        if (user?.timeSlots?.length > 0) {
-          accessTimesDiv.innerHTML = "";
-          user.timeSlots.forEach(slot => {
-            const start = new Date(slot.start);
-            const end = new Date(slot.end);
-            const now = new Date();
-            const isActive = now >= start && now <= end;
-
-            const slotDiv = document.createElement("div");
-            slotDiv.innerHTML = `
-              <p class="${isActive ? 'access-time' : 'no-access'}">
-                ${start.toLocaleString()} - ${end.toLocaleString()}
-                ${isActive ? '✅ (Aktive)' : '❌ (I skaduar)'}
-              </p>
-            `;
-            accessTimesDiv.appendChild(slotDiv);
-          });
-        } else {
-          accessTimesDiv.innerHTML = "<p>Nuk keni asnjë interval kohor të definuar.</p>";
-        }
-      } catch (err) {
-        console.error("Gabim në shfaqjen e intervaleve:", err);
-        accessTimesDiv.innerHTML = "<p>Nuk u mundësua ngarkimi i intervaleve kohore.</p>";
-      }
-    }
   </script>
 </body>
 </html>
