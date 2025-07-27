@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="sq">
+<head>
+  <meta charset="UTF-8">
+  <title>Verifikimi i Klientit</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background-color: #eef;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 50px;
+    }
+    form {
+      background: white;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      max-width: 400px;
+      width: 100%;
+    }
+    input, button {
+      display: block;
+      width: 100%;
+      margin: 1rem 0;
+      padding: 0.7rem;
+      font-size: 1rem;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    #message {
+      margin-top: 1rem;
+      min-height: 50px;
+      padding: 0.5rem;
+      border-radius: 4px;
+    }
+    .success {
+      color: #155724;
+      background-color: #d4edda;
+    }
+    .error {
+      color: #721c24;
+      background-color: #f8d7da;
+    }
+    .captcha-container {
+      display: flex;
+      gap: 10px;
+      margin: 1rem 0;
+    }
+    #captcha {
+      flex: 1;
+      background: #f0f0f0;
+      padding: 0.7rem;
+      text-align: center;
+      font-family: monospace;
+      font-size: 1.2rem;
+      letter-spacing: 3px;
+    }
+  </style>
+</head>
+<body>
+  <h2>Verifikimi i Klientit</h2>
+  <form id="verifyForm">
+    <input type="password" id="pin" placeholder="PIN i Klientit" required />
+    <div class="captcha-container">
+      <div id="captcha"></div>
+      <button type="button" onclick="refreshCaptcha()">⟳</button>
+    </div>
+    <input type="text" id="captchaInput" placeholder="Shkruaj CAPTCHA" required />
+    <button type="submit">Verifiko</button>
+    <div id="message"></div>
+  </form>
+
+  <script>
+    let serverNonce = '';
+    let captchaCode = '';
+
+    function generateCaptcha() {
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      captchaCode = '';
+      for (let i = 0; i < 6; i++) {
+        captchaCode += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      document.getElementById('captcha').textContent = captchaCode;
+    }
+
+    function refreshCaptcha() {
+      generateCaptcha();
+      document.getElementById('captchaInput').value = '';
+    }
+
+    async function getDeviceFingerprint() {
+      const components = [
+        navigator.userAgent,
+        navigator.hardwareConcurrency,
+        screen.width + 'x' + screen.height,
+        navigator.deviceMemory || 'unknown',
+        new Date().getTimezoneOffset()
+      ];
+      
+      const hash = await crypto.subtle.digest(
+        'SHA-256',
+        new TextEncoder().encode(components.join('|'))
+      );
+      return Array.from(new Uint8Array(hash))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+    }
+
+    document.getElementById("verifyForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const pin = document.getElementById("pin").value.trim();
+      const captcha = document.getElementById("captchaInput").value.trim();
+      const message = document.getElementById("message");
+      
+      if (captcha !== captchaCode) {
+        message.textContent = "CAPTCHA e gabuar";
+        message.className = "error";
+        refreshCaptcha();
+        return;
+      }
+
+      const fingerprint = await getDeviceFingerprint();
+      
+      try {
+        const res = await fetch("https://porta.armnis76.workers.dev/verify-client", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            pin,
+            fingerprint,
+            nonce: serverNonce 
+          })
+        });
+
+        const data = await res.json();
+        
+        if (res.ok) {
+          sessionStorage.setItem("authData", JSON.stringify({
+            token: data.token,
+            expires: data.expires,
+            fp: fingerprint
+          }));
+          window.location.href = `access.html?nonce=${encodeURIComponent(data.nonce)}`;
+        } else {
+          message.textContent = data.error || "Verifikimi dështoi";
+          message.className = "error";
+          refreshCaptcha();
+        }
+      } catch (err) {
+        message.textContent = "Gabim në rrjet";
+        message.className = "error";
+        refreshCaptcha();
+      }
+    });
+
+    // Initialize
+    fetch("https://porta.armnis76.workers.dev/get-nonce")
+      .then(r => r.json())
+      .then(data => serverNonce = data.nonce)
+      .catch(() => alert("Server error"));
+    generateCaptcha();
+  </script>
+</body>
+</html>
