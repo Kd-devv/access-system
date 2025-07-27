@@ -1,148 +1,167 @@
 <!DOCTYPE html>
 <html lang="sq">
 <head>
-  <meta charset="UTF-8">
-  <title>Sistemi i Aksesit</title>
+  <meta charset="UTF-8" />
+  <title>Verifikimi i PIN</title>
   <style>
     body {
-      font-family: 'Arial', sans-serif;
-      background-color: #f5f7fa;
+      font-family: sans-serif;
+      background-color: #eef;
       display: flex;
-      justify-content: center;
+      flex-direction: column;
       align-items: center;
-      height: 100vh;
-      margin: 0;
+      padding-top: 50px;
     }
-    .access-container {
-      background-color: white;
-      border-radius: 10px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      width: 100%;
+    form, .full-login {
+      background: white;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
       max-width: 400px;
-      padding: 30px;
-    }
-    h2 {
-      color: #2c3e50;
-      text-align: center;
-      margin-bottom: 25px;
-    }
-    .form-group {
-      margin-bottom: 20px;
-    }
-    label {
-      display: block;
-      margin-bottom: 8px;
-      font-weight: 600;
-      color: #34495e;
-    }
-    input {
       width: 100%;
-      padding: 12px 15px;
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      font-size: 16px;
+    }
+    input, button {
+      display: block;
+      width: 100%;
+      margin: 1rem 0;
+      padding: 0.7rem;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
     }
     button {
-      background-color: #2ecc71;
+      background-color: #4CAF50;
       color: white;
       border: none;
-      padding: 12px;
-      border-radius: 6px;
       cursor: pointer;
-      font-size: 16px;
-      width: 100%;
-      margin-top: 10px;
     }
     #message {
-      margin-top: 20px;
-      padding: 12px;
-      border-radius: 6px;
-      display: none;
+      margin-top: 1rem;
+      min-height: 40px;
     }
     .success {
-      background-color: #d4edda;
       color: #155724;
-      display: block !important;
+      background-color: #d4edda;
+      padding: 10px;
+      border-radius: 4px;
     }
     .error {
-      background-color: #f8d7da;
       color: #721c24;
-      display: block !important;
+      background-color: #f8d7da;
+      padding: 10px;
+      border-radius: 4px;
+    }
+    .hidden {
+      display: none;
     }
   </style>
 </head>
 <body>
-  <div class="access-container">
-    <h2>Hyrje në Sistem</h2>
+  <h2>Verifikim PIN</h2>
+
+  <!-- Hapi 1: Vetëm verifikimi i PIN -->
+  <form id="pinCheckForm">
+    <input type="password" id="pinOnly" placeholder="Vendos PIN-in" required />
+    <button type="submit">Verifiko</button>
+    <div id="message"></div>
+  </form>
+
+  <!-- Hapi 2: Formulari i plotë për të hapur derën -->
+  <div id="fullLoginForm" class="hidden full-login">
+    <h2>Hap Derën</h2>
     <form id="accessForm">
-      <div class="form-group">
-        <label for="username">Emri i Përdoruesit</label>
-        <input type="text" id="username" required>
-      </div>
-      <div class="form-group">
-        <label for="password">Fjalëkalimi</label>
-        <input type="password" id="password" required>
-      </div>
+      <input type="text" id="name" placeholder="Emri i përdoruesit" required />
+      <input type="password" id="pin" placeholder="PIN" required />
       <button type="submit">Hap Derën</button>
-      <div id="message"></div>
+      <div id="accessMessage"></div>
     </form>
   </div>
 
   <script>
-    const API_URL = "https://porta.armnis76.workers.dev/access";
-    let failedAttempts = 0;
-    const MAX_ATTEMPTS = 3;
-    const BLOCK_TIME = 30000; // 30 sekonda
+    const API_URL = "https://porta.armnis76.workers.dev";
 
-    document.getElementById("accessForm").addEventListener("submit", async function(e) {
-      e.preventDefault();
-      
-      const username = document.getElementById("username").value.trim();
-      const password = document.getElementById("password").value.trim();
-      const message = document.getElementById("message");
-
-      // Kontrollo bllokimin
-      const blockedUntil = localStorage.getItem('blockedUntil');
-      if (blockedUntil && Date.now() < blockedUntil) {
-        const remaining = Math.ceil((blockedUntil - Date.now()) / 1000);
-        showMessage(`Jeni bllokuar për ${remaining} sekonda të tjera`, 'error');
-        return;
+    window.onload = function () {
+      const verified = sessionStorage.getItem("verified");
+      if (verified === "true") {
+        document.getElementById("fullLoginForm").classList.remove("hidden");
+        document.getElementById("pinCheckForm").classList.add("hidden");
       }
+    };
+
+    // Hapi 1: Verifikimi i vetëm i PIN
+    document.getElementById("pinCheckForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const pin = document.getElementById("pinOnly").value.trim();
+      const msg = document.getElementById("message");
+      msg.textContent = "Po kontrollohet...";
+      msg.className = "";
 
       try {
-        showMessage("Po verifikohen të dhënat...", "");
+        const res = await fetch(`${API_URL}`);
+        const users = await res.json();
+        let matchedUser = null;
+        const now = new Date();
 
-        const response = await fetch(API_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: username, password })
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-          failedAttempts = 0;
-          showMessage(data.message || "Hyrja u krye me sukses!", "success");
-        } else {
-          failedAttempts++;
-          if (failedAttempts >= MAX_ATTEMPTS) {
-            const blockTime = Date.now() + BLOCK_TIME;
-            localStorage.setItem('blockedUntil', blockTime);
-            showMessage(`Shumë përpjekje të gabuara. Jeni bllokuar për 30 sekonda.`, "error");
-          } else {
-            showMessage(data.error || "Kredenciale të gabuara", "error");
+        for (const [username, userData] of Object.entries(users)) {
+          if (userData.pin === pin) {
+            const validTime = userData.timeSlots?.some(slot => {
+              const start = new Date(slot.start);
+              const end = new Date(slot.end);
+              return now >= start && now <= end;
+            });
+            if (validTime) {
+              matchedUser = username;
+              break;
+            }
           }
         }
-      } catch (error) {
-        showMessage("Gabim në lidhje me serverin", "error");
+
+        if (matchedUser) {
+          msg.textContent = "PIN i verifikuar me sukses!";
+          msg.className = "success";
+          sessionStorage.setItem("verified", "true");
+          document.getElementById("fullLoginForm").classList.remove("hidden");
+          document.getElementById("pinCheckForm").classList.add("hidden");
+        } else {
+          msg.textContent = "PIN nuk është valid ose është jashtë orarit.";
+          msg.className = "error";
+        }
+      } catch (err) {
+        msg.textContent = "Gabim gjatë verifikimit: " + err.message;
+        msg.className = "error";
       }
     });
 
-    function showMessage(text, type) {
-      const message = document.getElementById("message");
-      message.textContent = text;
-      message.className = type;
-    }
+    // Hapi 2: Hapja e derës
+    document.getElementById("accessForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const name = document.getElementById("name").value.trim();
+      const pin = document.getElementById("pin").value.trim();
+      const message = document.getElementById("accessMessage");
+      
+      message.textContent = "Po verifikohet...";
+      message.className = "";
+
+      try {
+        const res = await fetch(`${API_URL}/access`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, pin })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+          message.textContent = data.message;
+          message.className = "success";
+        } else {
+          message.textContent = data.error || "Gabim i panjohur";
+          message.className = "error";
+        }
+      } catch (err) {
+        message.textContent = "Gabim në rrjet: " + err.message;
+        message.className = "error";
+      }
+    });
   </script>
 </body>
 </html>
