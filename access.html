@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="sq">
 <head>
-  <meta charset="UTF-8" />
-  <title>Verifikimi i PIN</title>
+  <meta charset="UTF-8">
+  <title>Hapja e Derës</title>
   <style>
     body {
       font-family: sans-serif;
@@ -12,7 +12,7 @@
       align-items: center;
       padding-top: 50px;
     }
-    form, .full-login {
+    form {
       background: white;
       padding: 2rem;
       border-radius: 8px;
@@ -26,7 +26,7 @@
       margin: 1rem 0;
       padding: 0.7rem;
       font-size: 1rem;
-      border: 1px solid #ccc;
+      border: 1px solid #ddd;
       border-radius: 4px;
     }
     button {
@@ -37,119 +37,67 @@
     }
     #message {
       margin-top: 1rem;
-      min-height: 40px;
+      min-height: 50px;
+      padding: 0.5rem;
+      border-radius: 4px;
     }
     .success {
       color: #155724;
       background-color: #d4edda;
-      padding: 10px;
-      border-radius: 4px;
     }
     .error {
       color: #721c24;
       background-color: #f8d7da;
-      padding: 10px;
-      border-radius: 4px;
     }
-    .hidden {
-      display: none;
+    .access-calendar {
+      margin-top: 20px;
+      width: 100%;
+      max-width: 400px;
+    }
+    .access-time {
+      color: #4CAF50;
+      font-weight: bold;
+    }
+    .no-access {
+      color: #f44336;
     }
   </style>
 </head>
 <body>
-  <h2>Verifikim PIN</h2>
-
-  <!-- Hapi 1: Vetëm verifikimi i PIN -->
-  <form id="pinCheckForm">
-    <input type="password" id="pinOnly" placeholder="Vendos PIN-in" required />
-    <button type="submit">Verifiko</button>
+  <h2>Hyr me PIN</h2>
+  <form id="accessForm">
+    <input type="text" id="name" placeholder="Emri i përdoruesit" required />
+    <input type="password" id="pin" placeholder="PIN" required />
+    <button type="submit">Hap Derën</button>
     <div id="message"></div>
   </form>
 
-  <!-- Hapi 2: Formulari i plotë për të hapur derën -->
-  <div id="fullLoginForm" class="hidden full-login">
-    <h2>Hap Derën</h2>
-    <form id="accessForm">
-      <input type="text" id="name" placeholder="Emri i përdoruesit" required />
-      <input type="password" id="pin" placeholder="PIN" required />
-      <button type="submit">Hap Derën</button>
-      <div id="accessMessage"></div>
-    </form>
+  <div class="access-calendar" id="accessCalendar">
+    <h3>Orari juaj i aksesit:</h3>
+    <div id="accessTimes"></div>
   </div>
 
   <script>
-    const API_URL = "https://porta.armnis76.workers.dev";
+    const API_URL = "https://porta.armnis76.workers.dev/access";
 
-    window.onload = function () {
-      const verified = sessionStorage.getItem("verified");
-      if (verified === "true") {
-        document.getElementById("fullLoginForm").classList.remove("hidden");
-        document.getElementById("pinCheckForm").classList.add("hidden");
-      }
-    };
-
-    // Hapi 1: Verifikimi i vetëm i PIN
-    document.getElementById("pinCheckForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const pin = document.getElementById("pinOnly").value.trim();
-      const msg = document.getElementById("message");
-      msg.textContent = "Po kontrollohet...";
-      msg.className = "";
-
-      try {
-        const res = await fetch(`${API_URL}`);
-        const users = await res.json();
-        let matchedUser = null;
-        const now = new Date();
-
-        for (const [username, userData] of Object.entries(users)) {
-          if (userData.pin === pin) {
-            const validTime = userData.timeSlots?.some(slot => {
-              const start = new Date(slot.start);
-              const end = new Date(slot.end);
-              return now >= start && now <= end;
-            });
-            if (validTime) {
-              matchedUser = username;
-              break;
-            }
-          }
-        }
-
-        if (matchedUser) {
-          msg.textContent = "PIN i verifikuar me sukses!";
-          msg.className = "success";
-          sessionStorage.setItem("verified", "true");
-          document.getElementById("fullLoginForm").classList.remove("hidden");
-          document.getElementById("pinCheckForm").classList.add("hidden");
-        } else {
-          msg.textContent = "PIN nuk është valid ose është jashtë orarit.";
-          msg.className = "error";
-        }
-      } catch (err) {
-        msg.textContent = "Gabim gjatë verifikimit: " + err.message;
-        msg.className = "error";
-      }
-    });
-
-    // Hapi 2: Hapja e derës
     document.getElementById("accessForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       const name = document.getElementById("name").value.trim();
       const pin = document.getElementById("pin").value.trim();
-      const message = document.getElementById("accessMessage");
+      const message = document.getElementById("message");
       
       message.textContent = "Po verifikohet...";
       message.className = "";
 
       try {
-        const res = await fetch(`${API_URL}/access`, {
+        const res = await fetch(API_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name, pin })
         });
 
         const data = await res.json();
+        
         if (res.ok) {
           message.textContent = data.message;
           message.className = "success";
@@ -157,11 +105,55 @@
           message.textContent = data.error || "Gabim i panjohur";
           message.className = "error";
         }
+        
+        // Shfaq intervalet kohore edhe nëse ka gabim në hapje
+        await showUserAccessTimes(name);
       } catch (err) {
         message.textContent = "Gabim në rrjet: " + err.message;
         message.className = "error";
       }
     });
+
+    async function showUserAccessTimes(name) {
+      if (!name) return;
+      
+      const accessTimesDiv = document.getElementById("accessTimes");
+      accessTimesDiv.innerHTML = "<p>Po ngarkohen intervalet kohore...</p>";
+
+      try {
+        const res = await fetch(`https://porta.armnis76.workers.dev/user?name=${encodeURIComponent(name)}`);
+        
+        if (!res.ok) {
+          throw new Error(await res.text());
+        }
+        
+        const user = await res.json();
+
+        if (user?.timeSlots?.length > 0) {
+          accessTimesDiv.innerHTML = "";
+          user.timeSlots.forEach(slot => {
+            const start = new Date(slot.start);
+            const end = new Date(slot.end);
+            const now = new Date();
+            const isActive = now >= start && now <= end;
+
+            const slotDiv = document.createElement("div");
+            slotDiv.innerHTML = `
+              <p class="${isActive ? 'access-time' : 'no-access'}">
+                ${start.toLocaleString()} - ${end.toLocaleString()}
+                ${isActive ? '✅ (Aktive)' : '❌ (I skaduar)'}
+              </p>
+            `;
+            accessTimesDiv.appendChild(slotDiv);
+          });
+        } else {
+          accessTimesDiv.innerHTML = "<p>Nuk keni asnjë interval kohor të definuar.</p>";
+        }
+      } catch (err) {
+        console.error("Gabim në shfaqjen e intervaleve:", err);
+        accessTimesDiv.innerHTML = "<p>Nuk u mundësua ngarkimi i intervaleve kohore.</p>";
+      }
+    }
   </script>
 </body>
 </html>
