@@ -66,8 +66,8 @@
 <body>
   <h2>Hyr me PIN</h2>
   <form id="accessForm">
-    <input type="text" id="name" placeholder="Emri i përdoruesit" required>
-    <input type="password" id="pin" placeholder="PIN" required>
+    <input type="text" id="name" placeholder="Emri i përdoruesit" required />
+    <input type="password" id="pin" placeholder="PIN" required />
     <button type="submit">Hap Derën</button>
     <div id="message"></div>
   </form>
@@ -78,36 +78,36 @@
   </div>
 
   <script>
-    const API_URL = "https://porta.armnis76.workers.dev";
+    const API_URL = "https://porta.armnis76.workers.dev/access";
 
     document.getElementById("accessForm").addEventListener("submit", async (e) => {
       e.preventDefault();
+      const name = document.getElementById("name").value.trim();
+      const pin = document.getElementById("pin").value.trim();
       const message = document.getElementById("message");
+      
       message.textContent = "Po verifikohet...";
       message.className = "";
 
       try {
-        const response = await fetch(`${API_URL}/access`, {
+        const res = await fetch(API_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: document.getElementById("name").value.trim(),
-            pin: document.getElementById("pin").value.trim()
-          }),
-          mode: 'cors'
+          body: JSON.stringify({ name, pin })
         });
 
-        const data = await response.json();
+        const data = await res.json();
         
-        if (response.ok) {
-          message.textContent = data.message || "Derë e hapur me sukses!";
+        if (res.ok) {
+          message.textContent = data.message;
           message.className = "success";
         } else {
           message.textContent = data.error || "Gabim i panjohur";
           message.className = "error";
         }
         
-        await showUserAccessTimes(document.getElementById("name").value.trim());
+        // Shfaq intervalet kohore edhe nëse ka gabim në hapje
+        await showUserAccessTimes(name);
       } catch (err) {
         message.textContent = "Gabim në rrjet: " + err.message;
         message.className = "error";
@@ -121,18 +121,16 @@
       accessTimesDiv.innerHTML = "<p>Po ngarkohen intervalet kohore...</p>";
 
       try {
-        const response = await fetch(`${API_URL}/user?name=${encodeURIComponent(name)}`, {
-          mode: 'cors'
-        });
+        const res = await fetch(`https://porta.armnis76.workers.dev/user?name=${encodeURIComponent(name)}`);
         
-        if (!response.ok) {
-          throw new Error("Përdoruesi nuk u gjet");
+        if (!res.ok) {
+          throw new Error(await res.text());
         }
         
-        const user = await response.json();
-        accessTimesDiv.innerHTML = "";
+        const user = await res.json();
 
-        if (user.timeSlots?.length > 0) {
+        if (user?.timeSlots?.length > 0) {
+          accessTimesDiv.innerHTML = "";
           user.timeSlots.forEach(slot => {
             const start = new Date(slot.start);
             const end = new Date(slot.end);
@@ -149,10 +147,11 @@
             accessTimesDiv.appendChild(slotDiv);
           });
         } else {
-          accessTimesDiv.innerHTML = "<p>Nuk keni asnjë interval kohor të definuar</p>";
+          accessTimesDiv.innerHTML = "<p>Nuk keni asnjë interval kohor të definuar.</p>";
         }
       } catch (err) {
-        accessTimesDiv.innerHTML = `<p class="error">Gabim: ${err.message}</p>`;
+        console.error("Gabim në shfaqjen e intervaleve:", err);
+        accessTimesDiv.innerHTML = "<p>Nuk u mundësua ngarkimi i intervaleve kohore.</p>";
       }
     }
   </script>
