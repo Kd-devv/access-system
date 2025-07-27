@@ -1,88 +1,84 @@
 <!DOCTYPE html>
 <html lang="sq">
 <head>
-  <!-- Head content remains the same -->
+  <!-- Kopjoni të gjithë HEAD tuaj origjinal këtu -->
+  <meta charset="UTF-8">
+  <title>Hapja e Derës</title>
+  <style>
+    /* Kopjoni të gjithë CSS tuaj origjinal këtu */
+  </style>
 </head>
 <body>
-  <!-- HTML content remains the same -->
+  <!-- Kopjoni të gjithë HTML tuaj origjinal këtu -->
+  <h2>Hyr me PIN</h2>
+  <form id="accessForm">
+    <input type="text" id="name" placeholder="Emri i përdoruesit" required />
+    <input type="password" id="pin" placeholder="PIN" required />
+    <button type="submit">Hap Derën</button>
+    <div id="message"></div>
+  </form>
+
+  <div class="access-calendar" id="accessCalendar">
+    <h3>Orari juaj i aksesit:</h3>
+    <div id="accessTimes"></div>
+  </div>
 
   <script>
-    const API_URL = "https://porta.armnis76.workers.dev/access";
-
-    document.getElementById("accessForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const name = document.getElementById("name").value.trim();
-      const pin = document.getElementById("pin").value.trim();
-      const message = document.getElementById("message");
+    // ==================== RREGULLIMET E REJA ====================
+    document.addEventListener('DOMContentLoaded', function() {
+      const API_URL = "https://porta.armnis76.workers.dev/access";
+      const form = document.getElementById("accessForm");
       
-      message.textContent = "Po verifikohet...";
-      message.className = "";
+      if (!form) {
+        console.error("Gabim: Forma nuk u gjet");
+        return;
+      }
 
-      try {
-        const res = await fetch(API_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, pin })
-        });
-
-        const data = await res.json();
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const nameInput = document.getElementById("name");
+        const pinInput = document.getElementById("pin");
+        const messageDiv = document.getElementById("message");
         
-        if (res.ok) {
-          message.textContent = data.message;
-          message.className = "success";
-        } else {
-          message.textContent = data.error || "Gabim i panjohur";
-          message.className = "error";
+        if (!nameInput || !pinInput || !messageDiv) {
+          console.error("Gabim: Elementet e formës nuk u gjetën");
+          return;
         }
+
+        const name = nameInput.value.trim();
+        const pin = pinInput.value.trim();
         
-        await showUserAccessTimes(name);
-      } catch (err) {
-        message.textContent = "Gabim në rrjet: " + err.message;
-        message.className = "error";
+        messageDiv.textContent = "Po verifikohet...";
+        messageDiv.className = "";
+
+        try {
+          const res = await fetch(API_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, pin })
+          });
+          
+          const data = await res.json();
+          if (res.ok) {
+            messageDiv.textContent = data.message;
+            messageDiv.className = "success";
+          } else {
+            messageDiv.textContent = data.error || "Gabim i panjohur";
+            messageDiv.className = "error";
+          }
+          await showUserAccessTimes(name);
+        } catch (err) {
+          messageDiv.textContent = "Gabim në rrjet: " + err.message;
+          messageDiv.className = "error";
+        }
+      });
+
+      // Kopjoni funksionin tuaj origjinal showUserAccessTimes këtu
+      async function showUserAccessTimes(name) {
+        // ... (Kodi juaj ekzistues i pandryshuar)
       }
     });
-
-    async function showUserAccessTimes(name) {
-      if (!name) return;
-      
-      const accessTimesDiv = document.getElementById("accessTimes");
-      accessTimesDiv.innerHTML = "<p>Po ngarkohen intervalet kohore...</p>";
-
-      try {
-        const res = await fetch(`https://porta.armnis76.workers.dev/user?name=${encodeURIComponent(name)}`);
-        
-        if (!res.ok) {
-          throw new Error(await res.text());
-        }
-        
-        const user = await res.json();
-        console.log("Të dhënat e përdoruesit:", user);
-
-        if (user?.timeSlots?.length > 0) {
-          accessTimesDiv.innerHTML = "";
-          user.timeSlots.forEach(slot => {
-            const start = new Date(slot.start);
-            const end = new Date(slot.end);
-            const now = new Date();
-            const isActive = now >= start && now <= end;
-
-            const slotDiv = document.createElement("div");
-            slotDiv.innerHTML = `
-              <p class="${isActive ? 'access-time' : 'no-access'}">
-                ${start.toLocaleString()} - ${end.toLocaleString()}
-                ${isActive ? '✅ (Aktive)' : '❌ (I skaduar)'}
-              </p>
-            `;
-            accessTimesDiv.appendChild(slotDiv);
-          });
-        } else {
-          accessTimesDiv.innerHTML = "<p>Nuk keni asnjë interval kohor të definuar.</p>";
-        }
-      } catch (err) {
-        console.error("Gabim në shfaqjen e intervaleve:", err);
-        accessTimesDiv.innerHTML = "<p>Nuk u mundësua ngarkimi i intervaleve kohore.</p>";
-      }
-    }
+    // ==================== FUND I RREGULLIMEVE ====================
   </script>
 </body>
 </html>
