@@ -1,129 +1,143 @@
 <!DOCTYPE html>
 <html lang="sq">
 <head>
-  <!-- Head content i pandryshuar (ruajeni të njëjtin si në versionin tuaj origjinal) -->
+  <!-- Ruajini të gjithë head content tuaj origjinal -->
   <style>
-    /* Ruajini të gjitha stilizimet ekzistuese dhe shtoni këto: */
-    .log-controls {
+    /* Sigurohuni që keni këto stilizime: */
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    .tabs {
       display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
       margin-bottom: 20px;
+      border-bottom: 1px solid #ccc;
     }
-    .log-controls button {
-      padding: 8px 12px;
-      background: #4CAF50;
-      color: white;
-      border: none;
-      border-radius: 4px;
+    .tab {
+      padding: 10px 20px;
       cursor: pointer;
+      background: #f0f0f0;
+      border: 1px solid #ccc;
+      border-bottom: none;
+      margin-right: 5px;
+      border-radius: 5px 5px 0 0;
     }
-    .log-controls button.delete {
-      background: #f44336;
-    }
-    #filterInput {
-      padding: 8px;
-      width: 300px;
+    .tab.active {
+      background: white;
+      border-bottom: 1px solid white;
+      margin-bottom: -1px;
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
-  <!-- Pjesa e mbetur e HTML ruhet e pandryshuar -->
-
-  <!-- Tabi i Logjeve (përditësuar) -->
-  <div id="logs-tab" class="tab-content">
-    <div class="log-controls">
-      <input type="text" id="filterInput" placeholder="Filtro sipas emrit, IP, statusit...">
-      <button onclick="loadLogs()">🔁 Rifresko</button>
-      <button onclick="exportAllXLSX()">📤 Eksporto të gjitha</button>
-      <button onclick="exportFilteredXLSX()">📤 Eksporto të filtruarat</button>
-      <button onclick="deleteFilteredLogs()" class="delete">🗑️ Fshij të filtruarat</button>
-      <button onclick="deleteAllLogs()" class="delete">🗑️ Fshij të gjitha</button>
+  <!-- Password Protection Screen (Ruajeni si të jetë) -->
+  
+  <!-- Protected Content -->
+  <div class="protected-content">
+    <h1>🚪 Sistemi i Kontrollit të Aksesit</h1>
+    
+    <div class="tabs">
+      <!-- TABI 1 - Menaxhimi i Përdoruesve -->
+      <div class="tab active" onclick="switchTab('users')">Menaxhimi i Përdoruesve</div>
+      
+      <!-- TABI 2 - Logjet e Aksesit -->
+      <div class="tab" onclick="switchTab('logs')">Logjet e Aksesit</div>
     </div>
+    
+    <!-- Përmbajtja e Tab-it 1 -->
+    <div id="users-tab" class="tab-content active">
+      <!-- Ruajeni formën tuaj ekzistuese për menaxhimin e përdoruesve -->
+      <div class="form-group">
+        <label for="name">Emri i përdoruesit:</label>
+        <input id="name" placeholder="Emri">
+      </div>
+      <!-- ... ruajeni pjesën tjetër të formës ... -->
+    </div>
+    
+    <!-- Përmbajtja e Tab-it 2 -->
+    <div id="logs-tab" class="tab-content">
+      <div class="controls">
+        <input type="text" id="filterInput" placeholder="Filtro sipas emrit, IP, statusit...">
+        <button onclick="loadLogs()">🔁 Rifresko</button>
+        <button onclick="exportAllXLSX()">📤 Eksporto të gjitha</button>
+        <button onclick="exportFilteredXLSX()">📤 Eksporto të filtruarat</button>
+        <button onclick="deleteFilteredLogs()" style="background-color: #f44336;">🗑️ Fshij të filtruarat</button>
+        <button onclick="deleteAllLogs()" style="background-color: #f44336;">🗑️ Fshij të gjitha</button>
+      </div>
 
-    <table id="logTable">
-      <thead>
-        <tr>
-          <th>Koha</th>
-          <th>Emri</th>
-          <th>PIN</th>
-          <th>IP</th>
-          <th>Statusi</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
+      <table id="logTable">
+        <thead>
+          <tr>
+            <th>Koha</th>
+            <th>Emri</th>
+            <th>PIN</th>
+            <th>IP</th>
+            <th>Statusi</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
   </div>
 
   <script>
-    // Ruajini të gjithë kodin ekzistues përveç pjesës së logjeve
-    // Zëvendësoni vetëm pjesën e logjeve me këtë:
+    // Funksioni për ndërrimin e tab-ve
+    function switchTab(tabName) {
+      // Fshi klasën 'active' nga të gjitha tab-et
+      document.querySelectorAll('.tab').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      
+      // Fshi klasën 'active' nga të gjitha përmbajtjet
+      document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+      });
+      
+      // Shto aktiv tek tab-i i zgjedhur
+      document.querySelector(`.tab[onclick="switchTab('${tabName}')"]`).classList.add('active');
+      document.getElementById(`${tabName}-tab`).classList.add('active');
+      
+      // Nëse është tabi i logjeve, ngarko logjet
+      if (tabName === 'logs') {
+        loadLogs();
+      }
+    }
 
+    // Funksionet e tjera ruhen të njëjta si në versionin tuaj origjinal
     let allLogs = [];
-
+    
     async function loadLogs() {
       try {
         const res = await makeAuthRequest(`${apiUrl}/logs`);
-        if (res.status === 401) {
-          sessionStorage.removeItem("authToken");
-          window.location.reload();
-          return;
-        }
-        
         const data = await res.json();
-        allLogs = Object.entries(data)
-          .sort((a, b) => b[0].localeCompare(a[0]))
-          .map(entry => entry[1]);
-        
+        allLogs = Object.values(data);
         renderLogs();
       } catch (err) {
-        showMsg("Gabim gjatë ngarkimit të logeve: " + err.message, "error");
+        console.error("Gabim në ngarkimin e logjeve:", err);
       }
     }
 
     function renderLogs() {
-      const filter = document.getElementById("filterInput").value.toLowerCase();
       const tbody = document.querySelector("#logTable tbody");
       tbody.innerHTML = "";
-
-      for (const log of allLogs) {
-        const values = [log.user, log.pin, log.ip, log.status].map(v => (v || "").toLowerCase());
-        if (filter && !values.some(v => v.includes(filter))) continue;
-
+      
+      allLogs.forEach(log => {
         const tr = document.createElement("tr");
-        if (log.status === "success") tr.classList.add("log-success");
-        else if (log.status !== "user_not_found") tr.classList.add("log-error");
-
         tr.innerHTML = `
           <td>${new Date(log.time).toLocaleString()}</td>
-          <td>${log.user || "—"}</td>
-          <td>${log.pin || "—"}</td>
-          <td>${log.ip || "—"}</td>
+          <td>${log.user || "-"}</td>
+          <td>${log.pin || "-"}</td>
+          <td>${log.ip || "-"}</td>
           <td>${log.status}</td>
         `;
         tbody.appendChild(tr);
-      }
+      });
     }
 
-    // Funksionet e eksportit dhe fshirjes ruhen të njëjta si në versionin tuaj origjinal
-    async function exportAllXLSX() {
-      /* ... ruajeni implementimin tuaj origjinal ... */
-    }
-
-    async function exportFilteredXLSX() {
-      /* ... ruajeni implementimin tuaj origjinal ... */
-    }
-
-    async function deleteFilteredLogs() {
-      /* ... ruajeni implementimin tuaj origjinal ... */
-    }
-
-    async function deleteAllLogs() {
-      /* ... ruajeni implementimin tuaj origjinal ... */
-    }
-
-    // Initialize
-    document.getElementById("filterInput").addEventListener("input", renderLogs);
+    // Funksionet e tjera (exportAllXLSX, exportFilteredXLSX, etc.) ruhen të njëjta
   </script>
 </body>
 </html>
