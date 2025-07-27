@@ -2,12 +2,20 @@
 <html lang="sq">
 <head>
   <meta charset="UTF-8">
-  <title>Sistemi i Kontrollit të Aksesit - Admin</title>
+  <title>Admin Panel</title>
   <style>
-    body { font-family: sans-serif; max-width: 1000px; margin: 0 auto; padding: 20px; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f5f7fa;
+      margin: 0;
+      padding: 20px;
+    }
     #password-protection {
       position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
       background: rgba(0,0,0,0.8);
       display: flex;
       justify-content: center;
@@ -18,46 +26,51 @@
       background: white;
       padding: 30px;
       border-radius: 8px;
-      text-align: center;
+      width: 100%;
+      max-width: 400px;
     }
     #password-form input {
+      width: 100%;
       padding: 10px;
       margin: 10px 0;
-      width: 200px;
     }
     #password-error {
       color: red;
       margin-top: 10px;
       display: none;
     }
-    .protected-content { display: none; }
-    /* ... (other existing styles remain the same) ... */
+    .protected-content {
+      display: none;
+    }
   </style>
 </head>
 <body>
   <div id="password-protection">
     <div id="password-form">
       <h2>Hyrje në Panelin Admin</h2>
-      <input type="password" id="access-password" placeholder="Fjalëkalimi Admin" />
+      <input type="password" id="admin-password" placeholder="Fjalëkalimi Admin">
       <button onclick="checkAdminPassword()">Hyr</button>
       <div id="password-error"></div>
     </div>
   </div>
 
   <div class="protected-content">
-    <!-- ... (rest of your existing admin panel HTML) ... -->
+    <!-- Përmbajtja e panelit të administratorit -->
+    <h1>Paneli Administrator</h1>
+    <div id="adminContent">
+      <!-- Përmbajtja do të ngarkohet dinamikisht -->
+    </div>
   </div>
 
   <script>
-    const API_URL = "https://porta.armnis76.workers.dev";
-    let authToken = null;
+    const ADMIN_API_URL = "https://porta.armnis76.workers.dev/admin";
 
     async function checkAdminPassword() {
-      const password = document.getElementById("access-password").value;
+      const password = document.getElementById("admin-password").value;
       const errorElement = document.getElementById("password-error");
 
       try {
-        const response = await fetch(`${API_URL}/admin-login`, {
+        const response = await fetch(`${ADMIN_API_URL}/login`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ password })
@@ -66,55 +79,55 @@
         const data = await response.json();
 
         if (response.ok && data.token) {
-          authToken = data.token;
           localStorage.setItem("adminToken", data.token);
           document.getElementById("password-protection").style.display = "none";
           document.querySelector(".protected-content").style.display = "block";
-          loadInitialData();
+          loadAdminContent(data.token);
         } else {
           showError(errorElement, data.error || "Fjalëkalimi i gabuar");
         }
       } catch (err) {
-        showError(errorElement, "Gabim në server");
+        showError(errorElement, "Gabim në lidhje me serverin");
       }
+    }
+
+    async function loadAdminContent(token) {
+      try {
+        const response = await fetch(`${ADMIN_API_URL}/users`, {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+          const users = await response.json();
+          renderUsers(users);
+        } else {
+          throw new Error("Dështoi ngarkimi");
+        }
+      } catch (err) {
+        alert("Gabim në ngarkimin e të dhënave");
+      }
+    }
+
+    function renderUsers(users) {
+      const container = document.getElementById("adminContent");
+      container.innerHTML = "<h2>Përdoruesit</h2>";
+      
+      const table = document.createElement("table");
+      // ... kodi për të shfaqur përdoruesit ...
     }
 
     function showError(element, message) {
       element.textContent = message;
       element.style.display = "block";
-      setTimeout(() => element.style.display = "none", 3000);
     }
 
-    async function loadInitialData() {
-      try {
-        const response = await fetch(`${API_URL}/users`, {
-          headers: { "Authorization": `Bearer ${authToken}` }
-        });
-        if (!response.ok) throw new Error();
-        // Load your admin panel data here
-      } catch (err) {
-        localStorage.removeItem("adminToken");
-        window.location.reload();
-      }
-    }
-
-    // Check if already logged in
-    window.onload = async function() {
-      const savedToken = localStorage.getItem("adminToken");
-      if (savedToken) {
-        try {
-          const response = await fetch(`${API_URL}/verify-admin`, {
-            headers: { "Authorization": `Bearer ${savedToken}` }
-          });
-          if (response.ok) {
-            authToken = savedToken;
-            document.getElementById("password-protection").style.display = "none";
-            document.querySelector(".protected-content").style.display = "block";
-            loadInitialData();
-          }
-        } catch (err) {
-          localStorage.removeItem("adminToken");
-        }
+    // Kontrollo nëse admini është loguar
+    window.onload = function() {
+      const token = localStorage.getItem("adminToken");
+      if (token) {
+        document.getElementById("password-protection").style.display = "none";
+        document.querySelector(".protected-content").style.display = "block";
+        loadAdminContent(token);
       }
     };
   </script>
