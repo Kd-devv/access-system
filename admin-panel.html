@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="sq">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Panel</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+    .container { background: #f9f9f9; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+    button { background: #4CAF50; color: white; padding: 10px 15px; border: none; cursor: pointer; }
+    .code-display { font-size: 24px; font-weight: bold; margin: 10px 0; }
+  </style>
+</head>
+<body>
+  <h1>Porta - Panel Admini</h1>
+  
+  <div class="container">
+    <h2>Gjenero Kod Verifikimi</h2>
+    <input type="password" id="adminPass" placeholder="Fjalëkalimi Admin">
+    <button onclick="generatePreAuthCode()">Gjenero Kod të Ri</button>
+    <div id="codeResult" class="code-display"></div>
+  </div>
+
+  <script>
+    const API_URL = "https://porta.armnis76.workers.dev";
+
+    async function generatePreAuthCode() {
+      const adminPass = document.getElementById("adminPass").value;
+      
+      if (!adminPass) {
+        alert("Ju lutem shkruani fjalëkalimin admin");
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_URL}/generate-pre-auth`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ adminPass })
+        });
+
+        const data = await response.json();
+        
+        if (data.preAuthCode) {
+          document.getElementById("codeResult").textContent = data.preAuthCode;
+          alert(`Kodi i ri i verifikimit: ${data.preAuthCode}\nKy kod do të jetë i vlefshëm për 5 minuta.`);
+        } else {
+          alert(data.error || "Gabim në gjenerimin e kodit");
+        }
+      } catch (err) {
+        alert("Gabim në rrjet: " + err.message);
+      }
+    }
+  </script>
+</body>
+</html>
