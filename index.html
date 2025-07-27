@@ -4,115 +4,52 @@
   <meta charset="UTF-8">
   <title>Admin Panel</title>
   <style>
-    body { font-family: Arial, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; }
-    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-    th { background-color: #f2f2f2; }
-    button { padding: 8px 16px; margin: 5px; cursor: pointer; }
-    .container { margin-bottom: 30px; }
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+    .container { background: #f9f9f9; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+    button { background: #4CAF50; color: white; padding: 10px 15px; border: none; cursor: pointer; }
+    .code-display { font-size: 24px; font-weight: bold; margin: 10px 0; }
   </style>
 </head>
 <body>
-  <h1>Porta - Admin Panel</h1>
+  <h1>Porta - Panel Admini</h1>
   
   <div class="container">
-    <h2>Gjenero Kod Aksesi</h2>
-    <div>
-      <input id="username" placeholder="Emri i përdoruesit">
-      <input id="adminPass" type="password" placeholder="Fjalëkalimi admin">
-      <button onclick="generateCode()">Gjenero Kod</button>
-    </div>
-    <div id="codeResult" style="margin-top: 10px;"></div>
-  </div>
-
-  <div class="container">
-    <h2>Kodet Aktive</h2>
-    <table id="codesTable">
-      <thead>
-        <tr>
-          <th>Përdoruesi</th>
-          <th>Status</th>
-          <th>Veprime</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
+    <h2>Gjenero Kod Verifikimi</h2>
+    <input type="password" id="adminPass" placeholder="Fjalëkalimi Admin">
+    <button onclick="generatePreAuthCode()">Gjenero Kod të Ri</button>
+    <div id="codeResult" class="code-display"></div>
   </div>
 
   <script>
     const API_URL = "https://porta.armnis76.workers.dev";
-    let authToken = null;
 
-    async function login() {
-      const password = prompt("Fjalëkalimi admin:");
-      const res = await fetch(`${API_URL}/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password })
-      });
-      
-      const data = await res.json();
-      if (res.ok) authToken = data.token;
-      else alert(data.error);
-    }
-
-    async function generateCode() {
-      if (!authToken) await login();
-      if (!authToken) return;
-
-      const username = document.getElementById("username").value.trim();
+    async function generatePreAuthCode() {
       const adminPass = document.getElementById("adminPass").value;
+      
+      if (!adminPass) {
+        alert("Ju lutem shkruani fjalëkalimin admin");
+        return;
+      }
 
       try {
-        const res = await fetch(`${API_URL}/generate-code`, {
+        const response = await fetch(`${API_URL}/generate-pre-auth`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${authToken}`
-          },
-          body: JSON.stringify({ username, adminPass })
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ adminPass })
         });
 
-        const data = await res.json();
-        if (res.ok) {
-          document.getElementById("codeResult").innerHTML = `
-            <strong>Kodi:</strong> ${data.code}<br>
-            <strong>URL:</strong> ${data.url}
-          `;
-          loadActiveCodes();
+        const data = await response.json();
+        
+        if (data.preAuthCode) {
+          document.getElementById("codeResult").textContent = data.preAuthCode;
+          alert(`Kodi i ri i verifikimit: ${data.preAuthCode}\nKy kod do të jetë i vlefshëm për 5 minuta.`);
         } else {
-          alert(data.error || "Gabim i panjohur");
+          alert(data.error || "Gabim në gjenerimin e kodit");
         }
       } catch (err) {
         alert("Gabim në rrjet: " + err.message);
       }
     }
-
-    async function loadActiveCodes() {
-      // Implementimi aktual varet nga struktura e të dhënave
-      // Kjo është vetëm një shembull
-      const tbody = document.querySelector("#codesTable tbody");
-      tbody.innerHTML = "<tr><td colspan='3'>Po ngarkohen...</td></tr>";
-
-      try {
-        // Në praktikë, do të duhej një endpoint për të marrë të dhënat
-        tbody.innerHTML = `
-          <tr>
-            <td>user1</td>
-            <td>Aktiv</td>
-            <td>
-              <button>Zgjat</button>
-              <button style="color:red">Çaktivizo</button>
-            </td>
-          </tr>
-        `;
-      } catch (err) {
-        tbody.innerHTML = `<tr><td colspan='3'>${err.message}</td></tr>`;
-      }
-    }
-
-    // Initialize
-    window.onload = login;
   </script>
 </body>
 </html>
