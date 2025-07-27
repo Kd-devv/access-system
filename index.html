@@ -1,51 +1,47 @@
 <!DOCTYPE html>
 <html lang="sq">
 <head>
-  <!-- Head content remains the same -->
+  <!-- Kopjoni të gjithë HEAD tuaj origjinal këtu -->
+  <meta charset="UTF-8" />
+  <title>Sistemi i Kontrollit të Aksesit</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    /* Kopjoni të gjithë CSS tuaj origjinal këtu */
+  </style>
 </head>
 <body>
-  <!-- HTML content remains the same -->
+  <!-- Kopjoni të gjithë HTML tuaj origjinal këtu -->
+  <!-- Password Protection Screen -->
+  <div id="password-protection">
+    <div id="password-form">
+      <h2>Hyrje në Sistem</h2>
+      <input type="password" id="access-password" placeholder="Fjalëkalimi" />
+      <button onclick="checkPassword()">Hyr</button>
+      <div id="password-error"></div>
+    </div>
+  </div>
 
+  <!-- Protected Content -->
+  <div class="protected-content">
+    <!-- ... Kopjoni të gjithë përmbajtjen tuaj ... -->
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script>
+    // ==================== RREGULLIMET E REJA ====================
     const apiUrl = "https://porta.armnis76.workers.dev";
     let allLogs = [];
     let authToken = null;
-    
-    async function checkPassword() {
-      const enteredPassword = document.getElementById("access-password").value;
-      const errorElement = document.getElementById("password-error");
-      
-      try {
-        const response = await fetch(`${apiUrl}/login`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ password: enteredPassword })
-        });
-        
-        if (!response.ok) {
-          throw new Error("Gabim në autentifikim");
-        }
-        
-        const data = await response.json();
-        
-        if (data.token) {
-          authToken = data.token;
-          document.getElementById("password-protection").style.display = "none";
-          document.querySelector(".protected-content").style.display = "block";
-          sessionStorage.setItem("authToken", data.token);
-          await fetchUsers();
-        } else {
-          throw new Error("Nuk u mor token");
-        }
-      } catch (err) {
-        errorElement.textContent = "Fjalëkalimi i gabuar ose gabim në server";
-        errorElement.style.display = "block";
-        document.getElementById("access-password").value = "";
-        document.getElementById("access-password").focus();
-      }
-    }
-    
+
+    // Rregulluar window.onload
     window.onload = async function() {
+      const passwordInput = document.getElementById("access-password");
+      if (!passwordInput) {
+        console.error("Gabim: Elementi i fjalëkalimit nuk ekziston");
+        return;
+      }
+
       const savedToken = sessionStorage.getItem("authToken");
       if (savedToken) {
         try {
@@ -57,64 +53,20 @@
             authToken = savedToken;
             document.getElementById("password-protection").style.display = "none";
             document.querySelector(".protected-content").style.display = "block";
-            await fetchUsers();
+            fetchUsers();
             return;
           }
         } catch (err) {
-          console.error("Token verification failed:", err);
+          console.error("Gabim në verifikimin e token-it:", err);
         }
       }
-      
-      document.getElementById("access-password").focus();
+      passwordInput.focus();
     };
+    // ==================== FUND I RREGULLIMEVE ====================
 
-    async function makeAuthRequest(url, options = {}) {
-      const headers = {
-        ...(options.headers || {}),
-        "Authorization": `Bearer ${authToken}`
-      };
-      
-      try {
-        const response = await fetch(url, { ...options, headers });
-        
-        if (response.status === 401) {
-          sessionStorage.removeItem("authToken");
-          window.location.reload();
-          return null;
-        }
-        
-        return response;
-      } catch (err) {
-        console.error("Gabim në kërkesë:", err);
-        throw err;
-      }
-    }
-    
-    // Other functions remain the same, but ensure they use makeAuthRequest properly
-    async function fetchUsers() {
-      try {
-        const res = await makeAuthRequest(apiUrl);
-        if (!res) return;
-        
-        const data = await res.json();
-        console.log("Të dhënat e përdoruesve:", data);
-        
-        const tbody = document.querySelector("#userTable tbody");
-        tbody.innerHTML = "";
-
-        for (const [name, user] of Object.entries(data)) {
-          const tr = document.createElement("tr");
-
-          // Add cells for name, pin, time slots, and action
-          // ... (rest of the function remains the same)
-        }
-      } catch (err) {
-        console.error("Gabim në fetchUsers:", err);
-        showMsg("Gabim gjatë ngarkimit të përdoruesve: " + err.message, "error");
-      }
-    }
-
-    // Rest of your JavaScript remains the same
+    // ==================== KODI JUAJ ORIGJINAL ====================
+    // Kopjoni të gjithë JavaScript-in tuaj tjetër të pandryshuar këtu
+    // përfshirë checkPassword, fetchUsers, addUser, etj.
   </script>
 </body>
 </html>
