@@ -225,7 +225,7 @@
         try {
           // Verify the token is still valid
           const testResponse = await fetch(apiUrl, {
-            headers: { "Authorization": `Bearer ${savedToken}` }
+            headers: { "Authorization": `${savedToken}` }
           });
           
           if (testResponse.ok) {
@@ -247,7 +247,7 @@
     // Helper function for authenticated requests
     async function makeAuthRequest(url, options = {}) {
       const headers = options.headers || {};
-      headers["Authorization"] = `Bearer ${authToken}`;
+      headers["Authorization"] = `${authToken}`;
       return fetch(url, { ...options, headers });
     }
     
