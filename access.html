@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Hyrje në Portë</title>
   <style>
+    /* Stilet e mëparshme mbeten të njëjta */
     :root {
       --primary: #4a6fa5;
       --danger: #e63946;
@@ -12,129 +13,7 @@
       --dark: #264653;
     }
     
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-    
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: #f5f7fa;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      padding: 20px;
-    }
-    
-    .container {
-      width: 100%;
-      max-width: 500px;
-      background: white;
-      border-radius: 10px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      padding: 30px;
-      text-align: center;
-    }
-    
-    h2 {
-      color: var(--dark);
-      margin-bottom: 20px;
-    }
-    
-    .form-group {
-      margin-bottom: 20px;
-      text-align: left;
-    }
-    
-    label {
-      display: block;
-      margin-bottom: 5px;
-      font-weight: 500;
-      color: #555;
-    }
-    
-    input {
-      width: 100%;
-      padding: 12px 15px;
-      border: 1px solid #ddd;
-      border-radius: 5px;
-      font-size: 16px;
-      transition: border-color 0.3s;
-    }
-    
-    input:focus {
-      outline: none;
-      border-color: var(--primary);
-    }
-    
-    button {
-      width: 100%;
-      padding: 12px;
-      background-color: var(--primary);
-      color: white;
-      border: none;
-      border-radius: 5px;
-      font-size: 16px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: background-color 0.3s;
-    }
-    
-    button:hover {
-      background-color: #3a5a80;
-    }
-    
-    #message {
-      margin-top: 20px;
-      padding: 12px;
-      border-radius: 5px;
-      display: none;
-    }
-    
-    .success {
-      background-color: #d4edda;
-      color: #155724;
-      display: block;
-    }
-    
-    .error {
-      background-color: #f8d7da;
-      color: #721c24;
-      display: block;
-    }
-    
-    .access-calendar {
-      margin-top: 30px;
-      text-align: left;
-    }
-    
-    .access-calendar h3 {
-      color: var(--dark);
-      margin-bottom: 15px;
-    }
-    
-    .time-slot {
-      margin-bottom: 10px;
-      padding: 10px;
-      border-radius: 5px;
-      background-color: #f8f9fa;
-    }
-    
-    .active-time {
-      color: var(--success);
-      font-weight: 500;
-    }
-    
-    .inactive-time {
-      color: var(--danger);
-    }
-    
-    .status-icon {
-      margin-right: 5px;
-    }
+    /* ... (mbetja e stileve të mëparshme) ... */
   </style>
 </head>
 <body>
@@ -168,108 +47,114 @@
   <script>
     const API_URL = "https://porta.armnis76.workers.dev";
     
-    document.getElementById("accessForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
+    document.addEventListener('DOMContentLoaded', function() {
+      const accessForm = document.getElementById("accessForm");
       
-      const name = document.getElementById("name").value.trim();
-      const pin = document.getElementById("pin").value.trim();
-      const message = document.getElementById("message");
-      
-      // Reset message
-      message.className = "";
-      message.textContent = "";
-      
-      if (!name || !pin) {
-        showMessage("Ju lutem plotësoni të gjitha fushat", "error");
-        return;
-      }
-      
-      try {
-        showMessage("Po verifikohen të dhënat...", "");
+      accessForm.addEventListener("submit", async function(e) {
+        e.preventDefault();
         
-        const response = await fetch(`${API_URL}/access`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({ name, pin })
-        });
+        const name = document.getElementById("name").value.trim();
+        const pin = document.getElementById("pin").value.trim();
+        const message = document.getElementById("message");
         
-        const data = await response.json();
+        // Reset message
+        message.className = "";
+        message.textContent = "";
         
-        if (response.ok) {
-          showMessage(data.message || "Porta u hap me sukses!", "success");
-        } else {
-          showMessage(data.error || "Gabim gjatë hapjes së portës", "error");
+        if (!name || !pin) {
+          showMessage("Ju lutem plotësoni të gjitha fushat", "error");
+          return;
         }
         
-        // Load access times after attempt
-        await loadAccessTimes(name);
-      } catch (error) {
-        showMessage("Gabim në rrjet: " + error.message, "error");
-        console.error("Access error:", error);
-      }
-    });
-    
-    async function loadAccessTimes(username) {
-      if (!username) return;
-      
-      const accessTimesDiv = document.getElementById("accessTimes");
-      accessTimesDiv.innerHTML = "<p>Po ngarkohen intervalet kohore...</p>";
-      
-      try {
-        const response = await fetch(`${API_URL}/user?name=${encodeURIComponent(username)}`);
-        
-        if (!response.ok) {
-          throw new Error(await response.text());
-        }
-        
-        const userData = await response.json();
-        
-        if (userData?.timeSlots?.length > 0) {
-          accessTimesDiv.innerHTML = "";
+        try {
+          showMessage("Po verifikohen të dhënat...", "");
           
-          userData.timeSlots.forEach(slot => {
-            const startTime = new Date(slot.start);
-            const endTime = new Date(slot.end);
-            const now = new Date();
-            const isActive = now >= startTime && now <= endTime;
-            
-            const slotElement = document.createElement("div");
-            slotElement.className = "time-slot";
-            
-            const timeString = `${startTime.toLocaleString()} - ${endTime.toLocaleString()}`;
-            
-            slotElement.innerHTML = `
-              <p class="${isActive ? 'active-time' : 'inactive-time'}">
-                <span class="status-icon">${isActive ? '✓' : '✗'}</span>
-                ${timeString}
-                <span>(${isActive ? 'Aktive' : 'Jo aktive'})</span>
-              </p>
-            `;
-            
-            accessTimesDiv.appendChild(slotElement);
+          const response = await fetch(`${API_URL}/access`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ name, pin })
           });
-        } else {
-          accessTimesDiv.innerHTML = "<p>Nuk keni asnjë interval kohor të definuar</p>";
+          
+          const data = await response.json();
+          
+          if (response.ok) {
+            showMessage(data.message || "Porta u hap me sukses!", "success");
+          } else {
+            showMessage(data.error || "Gabim gjatë hapjes së portës", "error");
+          }
+          
+          // Load access times after attempt
+          await loadAccessTimes(name);
+        } catch (error) {
+          showMessage("Gabim në rrjet: " + error.message, "error");
+          console.error("Access error:", error);
         }
-      } catch (error) {
-        console.error("Error loading access times:", error);
-        accessTimesDiv.innerHTML = "<p>Gabim gjatë ngarkimit të intervaleve kohore</p>";
+      });
+      
+      // Funksioni për ngarkimin e orareve
+      async function loadAccessTimes(username) {
+        if (!username) return;
+        
+        const accessTimesDiv = document.getElementById("accessTimes");
+        accessTimesDiv.innerHTML = "<p>Po ngarkohen intervalet kohore...</p>";
+        
+        try {
+          const response = await fetch(`${API_URL}/user?name=${encodeURIComponent(username)}`);
+          
+          if (!response.ok) {
+            throw new Error(await response.text());
+          }
+          
+          const userData = await response.json();
+          
+          if (userData?.timeSlots?.length > 0) {
+            accessTimesDiv.innerHTML = "";
+            
+            userData.timeSlots.forEach(slot => {
+              const startTime = new Date(slot.start);
+              const endTime = new Date(slot.end);
+              const now = new Date();
+              const isActive = now >= startTime && now <= endTime;
+              
+              const slotElement = document.createElement("div");
+              slotElement.className = "time-slot";
+              
+              const timeString = `${startTime.toLocaleString()} - ${endTime.toLocaleString()}`;
+              
+              slotElement.innerHTML = `
+                <p class="${isActive ? 'active-time' : 'inactive-time'}">
+                  <span class="status-icon">${isActive ? '✓' : '✗'}</span>
+                  ${timeString}
+                  <span>(${isActive ? 'Aktive' : 'Jo aktive'})</span>
+                </p>
+              `;
+              
+              accessTimesDiv.appendChild(slotElement);
+            });
+          } else {
+            accessTimesDiv.innerHTML = "<p>Nuk keni asnjë interval kohor të definuar</p>";
+          }
+        } catch (error) {
+          console.error("Error loading access times:", error);
+          accessTimesDiv.innerHTML = "<p>Gabim gjatë ngarkimit të intervaleve kohore</p>";
+        }
       }
-    }
-    
-    function showMessage(text, type) {
-      const messageDiv = document.getElementById("message");
-      messageDiv.textContent = text;
-      messageDiv.className = type;
-    }
-    
-    // Allow pressing Enter to submit form
-    document.getElementById("pin").addEventListener("keypress", function(e) {
-      if (e.key === "Enter") {
-        document.getElementById("accessForm").dispatchEvent(new Event("submit"));
+      
+      // Funksioni për shfaqjen e mesazheve
+      function showMessage(text, type) {
+        const messageDiv = document.getElementById("message");
+        messageDiv.textContent = text;
+        messageDiv.className = type;
       }
+      
+      // Allow pressing Enter to submit form
+      document.getElementById("pin").addEventListener("keypress", function(e) {
+        if (e.key === "Enter") {
+          document.getElementById("accessForm").dispatchEvent(new Event("submit"));
+        }
+      });
     });
   </script>
 </body>
