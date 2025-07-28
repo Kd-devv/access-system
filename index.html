@@ -2,30 +2,15 @@
 <html lang="sq">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sistemi i Kontrollit të Aksesit - Admin</title>
+  <title>Sistemi i Kontrollit të Aksesit</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
-    /* Stilet e mëparshme mbeten të njëjta */
-    :root {
-      --primary: #4a6fa5;
-      --danger: #e63946;
-      --success: #2a9d8f;
-      --warning: #e9c46a;
-      --dark: #264653;
-      --light: #f8f9fa;
-    }
-    
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      margin: 0;
-      padding: 0;
-      background-color: #f5f5f5;
-      color: #333;
-    }
-    
-    /* ... (mbetja e stileve të mëparshme) ... */
+    /* Your existing CSS styles */
+    body { font-family: sans-serif; max-width: 1000px; margin: auto; padding: 20px; }
+    #password-protection { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+    #password-form { background: white; padding: 30px; border-radius: 8px; text-align: center; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+    /* Add all other existing styles */
   </style>
 </head>
 <body>
@@ -35,164 +20,140 @@
       <h2>Hyrje në Sistem</h2>
       <p>Ju lutem shkruani fjalëkalimin për të hyrë:</p>
       <input type="password" id="access-password" placeholder="Fjalëkalimi" autofocus>
-      <button id="login-btn">Hyr</button>
-      <div id="password-error" style="display: none;"></div>
+      <button id="login-button">Hyr</button>
+      <div id="password-error" style="color:red;margin-top:10px;display:none;"></div>
     </div>
   </div>
   
   <!-- Protected Content -->
-  <div class="protected-content" style="display: none;">
-    <div class="header">
-      <h1>🚪 Sistemi i Kontrollit të Aksesit</h1>
-      <button class="logout-btn" id="logout-btn">Dil</button>
-    </div>
-    
-    <div class="tabs">
-      <div class="tab active" data-tab="users">Menaxhimi i Përdoruesve</div>
-      <div class="tab" data-tab="logs">Logjet e Aksesit</div>
-    </div>
-    
-    <!-- User Management Tab -->
-    <div id="users-tab" class="tab-content active">
-      <!-- ... (mbetja e HTML për menaxhimin e përdoruesve) ... -->
-    </div>
-    
-    <!-- Access Logs Tab -->
-    <div id="logs-tab" class="tab-content">
-      <!-- ... (mbetja e HTML për logjet) ... -->
-    </div>
+  <div class="protected-content" style="display:none;">
+    <!-- Your existing protected content -->
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script>
-    // Konfigurimi global
+    // Configuration
     const apiUrl = "https://porta.armnis76.workers.dev";
     let authToken = null;
-    let allLogs = [];
-    let idleTimer;
-    let countdownInterval;
-    const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minuta
-    const WARNING_TIME = 5 * 60 * 1000; // 5 minuta paralajmërim
 
-    // Funksionet e Sesionit
-    function setupActivityListeners() {
-      ['mousemove', 'keypress', 'click', 'scroll'].forEach(event => {
-        document.addEventListener(event, resetIdleTimer);
-      });
-    }
+    // DOM Elements
+    const loginButton = document.getElementById('login-button');
+    const passwordInput = document.getElementById('access-password');
+    const passwordError = document.getElementById('password-error');
+    const protectedContent = document.querySelector('.protected-content');
+    const passwordProtection = document.getElementById('password-protection');
 
-    function resetIdleTimer() {
-      clearTimeout(idleTimer);
-      clearInterval(countdownInterval);
-      
-      idleTimer = setTimeout(logout, SESSION_TIMEOUT);
-      
-      if (authToken) {
-        fetch(`${apiUrl}/heartbeat`, {
-          headers: { "Authorization": `Bearer ${authToken}` }
-        }).catch(() => {});
+    // Event Listeners
+    document.addEventListener('DOMContentLoaded', initializeApp);
+    loginButton.addEventListener('click', checkPassword);
+    passwordInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') checkPassword();
+    });
+
+    // Initialize application
+    function initializeApp() {
+      const savedToken = sessionStorage.getItem("authToken");
+      if (savedToken) {
+        verifySession(savedToken);
       }
     }
 
-    // Funksioni i kyçjes
-    async function logout() {
-      if (authToken) {
-        try {
-          await fetch(`${apiUrl}/logout`, {
-            method: "POST",
-            headers: { "Authorization": `Bearer ${authToken}` }
-          });
-        } catch (e) {
-          console.error("Gabim gjatë daljes:", e);
-        }
-      }
-      sessionStorage.removeItem("authToken");
-      window.location.reload();
-    }
-
-    // Autentifikimi
+    // Check password function
     async function checkPassword() {
-      const password = document.getElementById("access-password").value;
-      const errorElement = document.getElementById("password-error");
+      const password = passwordInput.value;
       
       if (!password) {
-        errorElement.textContent = "Ju lutem shkruani fjalëkalimin";
-        errorElement.style.display = "block";
+        showError("Ju lutem shkruani fjalëkalimin");
         return;
       }
 
       try {
         const response = await fetch(`${apiUrl}/login`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+          },
           body: JSON.stringify({ password })
         });
-        
-        const data = await response.json();
-        
-        if (response.ok && data.token) {
-          authToken = data.token;
-          sessionStorage.setItem("authToken", authToken);
-          
-          document.getElementById("password-protection").style.display = "none";
-          document.querySelector(".protected-content").style.display = "block";
-          
-          setupActivityListeners();
-          resetIdleTimer();
-          fetchUsers();
-        } else {
-          errorElement.textContent = data.error || "Fjalëkalimi i gabuar";
-          errorElement.style.display = "block";
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Fjalëkalimi i gabuar");
         }
-      } catch (err) {
-        errorElement.textContent = "Gabim në rrjet: " + err.message;
-        errorElement.style.display = "block";
+
+        const data = await response.json();
+        authToken = data.token;
+        sessionStorage.setItem("authToken", authToken);
+        
+        passwordProtection.style.display = "none";
+        protectedContent.style.display = "block";
+        
+        // Load initial data
+        fetchUsers();
+      } catch (error) {
+        showError(error.message);
       }
     }
 
-    // Inicializimi
-    document.addEventListener('DOMContentLoaded', function() {
-      // Lidhja e butonave
-      document.getElementById('login-btn').addEventListener('click', checkPassword);
-      document.getElementById('logout-btn').addEventListener('click', logout);
-      
-      // Lidhja e tab-ve
-      document.querySelectorAll('.tab').forEach(tab => {
-        tab.addEventListener('click', function() {
-          switchTab(this.dataset.tab);
-        });
-      });
-
-      // Kontrollo sesionin ekzistues
-      const savedToken = sessionStorage.getItem("authToken");
-      if (savedToken) {
-        verifySession(savedToken);
-      }
-    });
-
+    // Verify existing session
     async function verifySession(token) {
       try {
-        const response = await fetch(`${apiUrl}/users`, {
-          headers: { "Authorization": `Bearer ${token}` }
+        const response = await fetch(`${apiUrl}/validate`, {
+          headers: { 
+            "Authorization": `Bearer ${token}`,
+            "Accept": "application/json"
+          }
         });
-        
+
         if (response.ok) {
           authToken = token;
-          document.getElementById("password-protection").style.display = "none";
-          document.querySelector(".protected-content").style.display = "block";
-          setupActivityListeners();
-          resetIdleTimer();
+          passwordProtection.style.display = "none";
+          protectedContent.style.display = "block";
           fetchUsers();
         } else {
           sessionStorage.removeItem("authToken");
         }
-      } catch (err) {
-        console.error("Verifikimi i sesionit dështoi:", err);
+      } catch (error) {
+        console.error("Session verification failed:", error);
+        sessionStorage.removeItem("authToken");
       }
     }
 
-    // Funksionet e tjera (fetchUsers, addTimeSlot, etc.) mbeten të njëjta
-    // ... (vendos këtu të gjitha funksionet e tjera të mëparshme) ...
+    // Helper functions
+    function showError(message) {
+      passwordError.textContent = message;
+      passwordError.style.display = "block";
+      passwordInput.value = "";
+      passwordInput.focus();
+    }
+
+    // Add all your other existing functions (fetchUsers, etc.)
+    async function fetchUsers() {
+      try {
+        const response = await fetch(`${apiUrl}/users`, {
+          headers: { 
+            "Authorization": `Bearer ${authToken}`,
+            "Accept": "application/json"
+          }
+        });
+
+        if (response.status === 401) {
+          sessionStorage.removeItem("authToken");
+          window.location.reload();
+          return;
+        }
+
+        // Process users data
+        const data = await response.json();
+        console.log("Users data:", data);
+        
+      } catch (error) {
+        console.error("Error fetching users:", error);
+      }
+    }
+
+    // Add all other application functions here...
   </script>
 </body>
 </html>
