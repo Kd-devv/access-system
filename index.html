@@ -224,7 +224,7 @@
       if (savedToken) {
         try {
           // Verify the token is still valid
-          const testResponse = await fetch(apiUrl, {
+          const testResponse = await fetch(`${apiUrl}/users`, {
             headers: { "Authorization": `Bearer ${savedToken}` }
           });
           
@@ -358,7 +358,7 @@
       }
 
       try {
-        const res = await makeAuthRequest(apiUrl, {
+        const res = await makeAuthRequest(`${apiUrl}/users`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -388,7 +388,7 @@
       if (!adminPass) return;
 
       try {
-        const res = await makeAuthRequest(apiUrl, {
+        const res = await makeAuthRequest(`${apiUrl}/users`, {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name, adminPass })
@@ -416,7 +416,7 @@
 
     async function fetchUsers() {
       try {
-        const res = await makeAuthRequest(apiUrl);
+        const res = await makeAuthRequest(`${apiUrl}/users`);
         
         if (res.status === 401) {
           sessionStorage.removeItem("authToken");
