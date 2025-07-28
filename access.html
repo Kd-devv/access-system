@@ -2,160 +2,114 @@
 <html lang="sq">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hyrje në Portë</title>
+  <title>Hapja e Derës</title>
   <style>
-    /* Stilet e mëparshme mbeten të njëjta */
-    :root {
-      --primary: #4a6fa5;
-      --danger: #e63946;
-      --success: #2a9d8f;
-      --dark: #264653;
+    body {
+      font-family: sans-serif;
+      background-color: #eef;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 50px;
     }
-    
-    /* ... (mbetja e stileve të mëparshme) ... */
+    /* Your existing CSS styles */
   </style>
 </head>
 <body>
-  <div class="container">
-    <h2>Hyrje në Portë</h2>
-    
-    <form id="accessForm">
-      <div class="form-group">
-        <label for="name">Emri i përdoruesit:</label>
-        <input type="text" id="name" placeholder="Shkruani emrin tuaj" required>
-      </div>
-      
-      <div class="form-group">
-        <label for="pin">Kodi PIN:</label>
-        <input type="password" id="pin" placeholder="Shkruani PIN-in tuaj" required>
-      </div>
-      
-      <button type="submit">Hap Portën</button>
-    </form>
-    
+  <h2>Hyr me PIN</h2>
+  <form id="accessForm">
+    <input type="text" id="name" placeholder="Emri i përdoruesit" required>
+    <input type="password" id="pin" placeholder="PIN" required>
+    <button type="submit">Hap Derën</button>
     <div id="message"></div>
-    
-    <div class="access-calendar" id="accessCalendar">
-      <h3>Orari juaj i aksesit:</h3>
-      <div id="accessTimes">
-        <p>Shkruani emrin dhe PIN-in për të shfaqur orarin e aksesit</p>
-      </div>
-    </div>
+  </form>
+
+  <div class="access-calendar" id="accessCalendar">
+    <h3>Orari juaj i aksesit:</h3>
+    <div id="accessTimes"></div>
   </div>
 
   <script>
     const API_URL = "https://porta.armnis76.workers.dev";
-    
-    document.addEventListener('DOMContentLoaded', function() {
-      const accessForm = document.getElementById("accessForm");
+    const accessForm = document.getElementById("accessForm");
+    const messageDiv = document.getElementById("message");
+    const accessTimesDiv = document.getElementById("accessTimes");
+
+    accessForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const name = document.getElementById("name").value.trim();
+      const pin = document.getElementById("pin").value.trim();
       
-      accessForm.addEventListener("submit", async function(e) {
-        e.preventDefault();
+      showMessage("Po verifikohet...", "");
+
+      try {
+        const response = await fetch(`${API_URL}/access`, {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+          },
+          body: JSON.stringify({ name, pin })
+        });
+
+        const data = await response.json();
         
-        const name = document.getElementById("name").value.trim();
-        const pin = document.getElementById("pin").value.trim();
-        const message = document.getElementById("message");
-        
-        // Reset message
-        message.className = "";
-        message.textContent = "";
-        
-        if (!name || !pin) {
-          showMessage("Ju lutem plotësoni të gjitha fushat", "error");
-          return;
+        if (response.ok) {
+          showMessage(data.message || "Porta u hap me sukses!", "success");
+        } else {
+          showMessage(data.error || "Gabim gjatë hapjes së portës", "error");
         }
         
-        try {
-          showMessage("Po verifikohen të dhënat...", "");
-          
-          const response = await fetch(`${API_URL}/access`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ name, pin })
-          });
-          
-          const data = await response.json();
-          
-          if (response.ok) {
-            showMessage(data.message || "Porta u hap me sukses!", "success");
-          } else {
-            showMessage(data.error || "Gabim gjatë hapjes së portës", "error");
-          }
-          
-          // Load access times after attempt
-          await loadAccessTimes(name);
-        } catch (error) {
-          showMessage("Gabim në rrjet: " + error.message, "error");
-          console.error("Access error:", error);
-        }
-      });
-      
-      // Funksioni për ngarkimin e orareve
-      async function loadAccessTimes(username) {
-        if (!username) return;
-        
-        const accessTimesDiv = document.getElementById("accessTimes");
-        accessTimesDiv.innerHTML = "<p>Po ngarkohen intervalet kohore...</p>";
-        
-        try {
-          const response = await fetch(`${API_URL}/user?name=${encodeURIComponent(username)}`);
-          
-          if (!response.ok) {
-            throw new Error(await response.text());
-          }
-          
-          const userData = await response.json();
-          
-          if (userData?.timeSlots?.length > 0) {
-            accessTimesDiv.innerHTML = "";
-            
-            userData.timeSlots.forEach(slot => {
-              const startTime = new Date(slot.start);
-              const endTime = new Date(slot.end);
-              const now = new Date();
-              const isActive = now >= startTime && now <= endTime;
-              
-              const slotElement = document.createElement("div");
-              slotElement.className = "time-slot";
-              
-              const timeString = `${startTime.toLocaleString()} - ${endTime.toLocaleString()}`;
-              
-              slotElement.innerHTML = `
-                <p class="${isActive ? 'active-time' : 'inactive-time'}">
-                  <span class="status-icon">${isActive ? '✓' : '✗'}</span>
-                  ${timeString}
-                  <span>(${isActive ? 'Aktive' : 'Jo aktive'})</span>
-                </p>
-              `;
-              
-              accessTimesDiv.appendChild(slotElement);
-            });
-          } else {
-            accessTimesDiv.innerHTML = "<p>Nuk keni asnjë interval kohor të definuar</p>";
-          }
-        } catch (error) {
-          console.error("Error loading access times:", error);
-          accessTimesDiv.innerHTML = "<p>Gabim gjatë ngarkimit të intervaleve kohore</p>";
-        }
+        await showUserAccessTimes(name);
+      } catch (err) {
+        showMessage("Gabim në rrjet: " + err.message, "error");
       }
-      
-      // Funksioni për shfaqjen e mesazheve
-      function showMessage(text, type) {
-        const messageDiv = document.getElementById("message");
-        messageDiv.textContent = text;
-        messageDiv.className = type;
-      }
-      
-      // Allow pressing Enter to submit form
-      document.getElementById("pin").addEventListener("keypress", function(e) {
-        if (e.key === "Enter") {
-          document.getElementById("accessForm").dispatchEvent(new Event("submit"));
-        }
-      });
     });
+
+    async function showUserAccessTimes(name) {
+      if (!name) return;
+      
+      accessTimesDiv.innerHTML = "<p>Po ngarkohen intervalet kohore...</p>";
+
+      try {
+        const response = await fetch(`${API_URL}/user?name=${encodeURIComponent(name)}`, {
+          headers: { "Accept": "application/json" }
+        });
+        
+        if (!response.ok) throw new Error(await response.text());
+        
+        const user = await response.json();
+
+        if (user?.timeSlots?.length > 0) {
+          accessTimesDiv.innerHTML = "";
+          user.timeSlots.forEach(slot => {
+            const start = new Date(slot.start);
+            const end = new Date(slot.end);
+            const now = new Date();
+            const isActive = now >= start && now <= end;
+
+            const slotDiv = document.createElement("div");
+            slotDiv.innerHTML = `
+              <p class="${isActive ? 'access-time' : 'no-access'}">
+                ${start.toLocaleString()} - ${end.toLocaleString()}
+                ${isActive ? '✅ (Aktive)' : '❌ (I skaduar)'}
+              </p>
+            `;
+            accessTimesDiv.appendChild(slotDiv);
+          });
+        } else {
+          accessTimesDiv.innerHTML = "<p>Nuk keni asnjë interval kohor të definuar.</p>";
+        }
+      } catch (err) {
+        console.error("Gabim në shfaqjen e intervaleve:", err);
+        accessTimesDiv.innerHTML = "<p>Nuk u mundësua ngarkimi i intervaleve kohore.</p>";
+      }
+    }
+
+    function showMessage(text, type) {
+      messageDiv.textContent = text;
+      messageDiv.className = type || "";
+    }
   </script>
 </body>
 </html>
