@@ -1,12 +1,297 @@
 <!DOCTYPE html>
 <html lang="sq">
 <head>
-  <meta charset="UTF-8" />
-  <title>Sistemi i Kontrollit të Aksesit</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistemi i Kontrollit të Aksesit - Admin</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
-    /* [Keep all your existing CSS styles exactly as they are] */
+    :root {
+      --primary: #4a6fa5;
+      --danger: #e63946;
+      --success: #2a9d8f;
+      --warning: #e9c46a;
+      --dark: #264653;
+      --light: #f8f9fa;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f5f5;
+      color: #333;
+    }
+    
+    #password-protection {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.8);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    
+    #password-form {
+      background: white;
+      padding: 2rem;
+      border-radius: 8px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    
+    #password-form h2 {
+      margin-top: 0;
+      color: var(--dark);
+      text-align: center;
+    }
+    
+    #password-form input {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+    
+    #password-form button {
+      width: 100%;
+      padding: 12px;
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    
+    #password-form button:hover {
+      background-color: #3a5a80;
+    }
+    
+    #password-error {
+      color: var(--danger);
+      margin-top: 10px;
+      text-align: center;
+      display: none;
+    }
+    
+    .protected-content {
+      display: none;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #ddd;
+    }
+    
+    .logout-btn {
+      background-color: var(--danger);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    
+    .tabs {
+      display: flex;
+      margin-bottom: 20px;
+      border-bottom: 1px solid #ddd;
+    }
+    
+    .tab {
+      padding: 10px 20px;
+      cursor: pointer;
+      background: #f0f0f0;
+      border: 1px solid #ddd;
+      border-bottom: none;
+      margin-right: 5px;
+      border-radius: 5px 5px 0 0;
+      transition: all 0.3s;
+    }
+    
+    .tab:hover {
+      background: #e0e0e0;
+    }
+    
+    .tab.active {
+      background: white;
+      border-bottom: 1px solid white;
+      margin-bottom: -1px;
+      font-weight: bold;
+    }
+    
+    .tab-content {
+      display: none;
+      padding: 20px;
+      background: white;
+      border-radius: 0 5px 5px 5px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+    
+    .form-group {
+      margin-bottom: 15px;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    
+    .form-group input, .form-group select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    
+    .time-slots {
+      margin-top: 20px;
+      border: 1px solid #ddd;
+      padding: 15px;
+      border-radius: 5px;
+    }
+    
+    .time-slot {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+      align-items: center;
+    }
+    
+    .time-slot input {
+      flex: 1;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    
+    .remove-btn {
+      background: var(--danger);
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    
+    .add-btn {
+      background: var(--success);
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    
+    .action-btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+    
+    .message {
+      margin-top: 15px;
+      padding: 10px;
+      border-radius: 4px;
+    }
+    
+    .success {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    
+    .error {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    
+    th, td {
+      border: 1px solid #ddd;
+      padding: 12px;
+      text-align: left;
+    }
+    
+    th {
+      background-color: #f2f2f2;
+    }
+    
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    
+    .controls input {
+      flex: 1;
+      min-width: 200px;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    
+    .controls button {
+      padding: 8px 12px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    
+    .refresh-btn {
+      background-color: var(--primary);
+      color: white;
+    }
+    
+    .export-btn {
+      background-color: var(--success);
+      color: white;
+    }
+    
+    .delete-btn {
+      background-color: var(--danger);
+      color: white;
+    }
+    
+    .log-success {
+      background-color: #d4edda;
+    }
+    
+    .log-error {
+      background-color: #f8d7da;
+    }
   </style>
 </head>
 <body>
@@ -15,7 +300,7 @@
     <div id="password-form">
       <h2>Hyrje në Sistem</h2>
       <p>Ju lutem shkruani fjalëkalimin për të hyrë:</p>
-      <input type="password" id="access-password" placeholder="Fjalëkalimi" autofocus />
+      <input type="password" id="access-password" placeholder="Fjalëkalimi" autofocus>
       <button onclick="checkPassword()">Hyr</button>
       <div id="password-error">Fjalëkalimi i gabuar, provoni përsëri!</div>
     </div>
@@ -23,19 +308,89 @@
   
   <!-- Protected Content -->
   <div class="protected-content">
-    <div style="position:absolute;top:20px;right:20px;">
-      <button onclick="logout()" style="background:#f44336;color:white;border:none;padding:8px 16px;border-radius:4px;">Dil</button>
+    <div class="header">
+      <h1>🚪 Sistemi i Kontrollit të Aksesit</h1>
+      <button class="logout-btn" onclick="logout()">Dil</button>
     </div>
     
-    <h1>🚪 Sistemi i Kontrollit të Aksesit</h1>
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('users')">Menaxhimi i Përdoruesve</div>
+      <div class="tab" onclick="switchTab('logs')">Logjet e Aksesit</div>
+    </div>
     
-    <!-- [Keep all your existing HTML content exactly as it is] -->
+    <!-- User Management Tab -->
+    <div id="users-tab" class="tab-content active">
+      <div class="form-group">
+        <label for="name">Emri i përdoruesit:</label>
+        <input type="text" id="name" placeholder="Emri">
+      </div>
+
+      <div class="form-group">
+        <label for="pin">PIN:</label>
+        <input type="password" id="pin" placeholder="PIN">
+      </div>
+
+      <div class="form-group">
+        <label for="adminPass">Fjalëkalimi Admin:</label>
+        <input type="password" id="adminPass" placeholder="Fjalëkalimi admin">
+      </div>
+
+      <div class="time-slots">
+        <h3>Intervalet kohore të lejuara:</h3>
+        <div id="timeSlotsContainer">
+          <!-- Time slots will be added here -->
+        </div>
+        <button class="add-btn" onclick="addTimeSlot()">+ Shto Interval Kohor</button>
+      </div>
+
+      <button class="action-btn" onclick="addUser()">Shto / Përditëso Përdorues</button>
+
+      <div class="message" id="msg"></div>
+
+      <table id="userTable">
+        <thead>
+          <tr>
+            <th>Emri</th>
+            <th>PIN</th>
+            <th>Intervalet Kohore</th>
+            <th>Veprim</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    
+    <!-- Access Logs Tab -->
+    <div id="logs-tab" class="tab-content">
+      <div class="controls">
+        <input type="text" id="filterInput" placeholder="Filtro sipas emrit, IP, statusit...">
+        <button class="refresh-btn" onclick="loadLogs()">🔁 Rifresko</button>
+        <button class="export-btn" onclick="exportAllXLSX()">📤 Eksporto të gjitha (Excel)</button>
+        <button class="export-btn" onclick="exportFilteredXLSX()">📤 Eksporto të filtruarat (Excel)</button>
+        <button class="delete-btn" onclick="deleteFilteredLogs()">🗑️ Fshij të filtruarat</button>
+        <button class="delete-btn" onclick="deleteAllLogs()">🗑️ Fshij të gjitha</button>
+      </div>
+
+      <table id="logTable">
+        <thead>
+          <tr>
+            <th>Koha</th>
+            <th>Emri</th>
+            <th>PIN i përdorur</th>
+            <th>IP</th>
+            <th>Statusi</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script>
     const apiUrl = "https://porta.armnis76.workers.dev";
     let authToken = null;
+    let allLogs = [];
     let idleTimer;
     let countdownInterval;
     const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
@@ -54,16 +409,11 @@
       
       idleTimer = setTimeout(logout, SESSION_TIMEOUT);
       
-      // Refresh server-side session if we're logged in
       if (authToken) {
         fetch(`${apiUrl}/heartbeat`, {
           headers: { "Authorization": `Bearer ${authToken}` }
         }).catch(() => {});
       }
-    }
-
-    function resetSession() {
-      resetIdleTimer();
     }
 
     async function logout() {
@@ -150,23 +500,425 @@
       }
     };
 
-    // ==================== HELPER FUNCTION ====================
+    // ==================== HELPER FUNCTIONS ====================
     async function makeAuthRequest(url, options = {}) {
       const headers = options.headers || {};
       headers["Authorization"] = `Bearer ${authToken}`;
       return fetch(url, { ...options, headers });
     }
 
-    // [Keep all your existing functions exactly as they are]
-    // - switchTab()
-    // - fetchUsers()
-    // - addTimeSlot()
-    // - getTimeSlots()
-    // - addUser()
-    // - deleteUser()
-    // - loadLogs()
-    // - export functions
-    // Just ensure they all use makeAuthRequest() for API calls
+    function showMsg(text, type) {
+      const msg = document.getElementById("msg");
+      msg.textContent = text;
+      msg.className = `message ${type}`;
+    }
+
+    // ==================== USER MANAGEMENT ====================
+    async function fetchUsers() {
+      try {
+        const res = await makeAuthRequest(`${apiUrl}/users`);
+        
+        if (res.status === 401) {
+          sessionStorage.removeItem("authToken");
+          window.location.reload();
+          return;
+        }
+        
+        const data = await res.json();
+        const tbody = document.querySelector("#userTable tbody");
+        tbody.innerHTML = "";
+
+        for (const [name, user] of Object.entries(data)) {
+          const tr = document.createElement("tr");
+
+          const tdName = document.createElement("td");
+          tdName.textContent = name;
+          tr.appendChild(tdName);
+
+          const tdPin = document.createElement("td");
+          tdPin.textContent = user.pin || "—";
+          tr.appendChild(tdPin);
+
+          const tdTimeSlots = document.createElement("td");
+          if (user.timeSlots && user.timeSlots.length > 0) {
+            const slotsList = document.createElement("div");
+            user.timeSlots.forEach(slot => {
+              const start = new Date(slot.start);
+              const end = new Date(slot.end);
+              const slotDiv = document.createElement("div");
+              slotDiv.textContent = `${start.toLocaleString()} - ${end.toLocaleString()}`;
+              slotsList.appendChild(slotDiv);
+            });
+            tdTimeSlots.appendChild(slotsList);
+          } else {
+            tdTimeSlots.textContent = "—";
+          }
+          tr.appendChild(tdTimeSlots);
+
+          const tdAction = document.createElement("td");
+          const delBtn = document.createElement("button");
+          delBtn.textContent = "Fshij";
+          delBtn.className = "remove-btn";
+          delBtn.onclick = () => deleteUser(name);
+          tdAction.appendChild(delBtn);
+          tr.appendChild(tdAction);
+
+          tbody.appendChild(tr);
+        }
+      } catch (err) {
+        showMsg("Gabim gjatë ngarkimit të përdoruesve: " + err.message, "error");
+      }
+    }
+
+    function initDateTimePicker(element) {
+      return flatpickr(element, {
+        enableTime: true,
+        dateFormat: "Y-m-d H:i",
+        time_24hr: true,
+        minDate: "today"
+      });
+    }
+
+    function addTimeSlot() {
+      const container = document.getElementById("timeSlotsContainer");
+      const slotDiv = document.createElement("div");
+      slotDiv.className = "time-slot";
+      
+      const startInput = document.createElement("input");
+      startInput.placeholder = "Data dhe ora e fillimit";
+      
+      const endInput = document.createElement("input");
+      endInput.placeholder = "Data dhe ora e mbarimit";
+      
+      const removeBtn = document.createElement("button");
+      removeBtn.className = "remove-btn";
+      removeBtn.textContent = "Fshij";
+      removeBtn.onclick = function() {
+        container.removeChild(slotDiv);
+      };
+      
+      slotDiv.appendChild(startInput);
+      slotDiv.appendChild(document.createTextNode("deri"));
+      slotDiv.appendChild(endInput);
+      slotDiv.appendChild(removeBtn);
+      
+      container.appendChild(slotDiv);
+      
+      initDateTimePicker(startInput);
+      initDateTimePicker(endInput);
+    }
+
+    function getTimeSlots() {
+      const slots = [];
+      const timeSlots = document.querySelectorAll(".time-slot");
+      
+      timeSlots.forEach(slot => {
+        const startInput = slot.querySelector("input:nth-of-type(1)");
+        const endInput = slot.querySelector("input:nth-of-type(2)");
+        
+        if (startInput._flatpickr && endInput._flatpickr) {
+          const startDate = startInput._flatpickr.selectedDates[0];
+          const endDate = endInput._flatpickr.selectedDates[0];
+          
+          if (startDate && endDate) {
+            slots.push({
+              start: startDate.toISOString(),
+              end: endDate.toISOString()
+            });
+          }
+        }
+      });
+      
+      return slots;
+    }
+
+    async function addUser() {
+      const name = document.getElementById("name").value.trim();
+      const pin = document.getElementById("pin").value.trim();
+      const adminPass = document.getElementById("adminPass").value;
+      const timeSlots = getTimeSlots();
+
+      if (!name || !pin || !adminPass) {
+        return showMsg("Ju lutem plotësoni të gjitha fushat e detyrueshme", "error");
+      }
+
+      if (timeSlots.length === 0) {
+        return showMsg("Ju lutem shtoni të paktën një interval kohor", "error");
+      }
+
+      try {
+        const res = await makeAuthRequest(`${apiUrl}/users`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name,
+            pin,
+            timeSlots,
+            adminPass
+          })
+        });
+
+        if (res.status === 401) {
+          sessionStorage.removeItem("authToken");
+          window.location.reload();
+          return;
+        }
+
+        const text = await res.text();
+        showMsg(text, res.ok ? "success" : "error");
+        if (res.ok) fetchUsers();
+      } catch (err) {
+        showMsg("Gabim në rrjet: " + err.message, "error");
+      }
+    }
+
+    async function deleteUser(name) {
+      const adminPass = prompt("Fjalëkalimi admin për fshirje:");
+      if (!adminPass) return;
+
+      try {
+        const res = await makeAuthRequest(`${apiUrl}/users`, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, adminPass })
+        });
+
+        if (res.status === 401) {
+          sessionStorage.removeItem("authToken");
+          window.location.reload();
+          return;
+        }
+
+        const text = await res.text();
+        showMsg(text, res.ok ? "success" : "error");
+        if (res.ok) fetchUsers();
+      } catch (err) {
+        showMsg("Gabim në rrjet: " + err.message, "error");
+      }
+    }
+
+    // ==================== LOGS MANAGEMENT ====================
+    async function loadLogs() {
+      try {
+        const res = await makeAuthRequest(`${apiUrl}/logs`);
+        
+        if (res.status === 401) {
+          sessionStorage.removeItem("authToken");
+          window.location.reload();
+          return;
+        }
+        
+        const data = await res.json();
+        allLogs = Object.entries(data)
+          .sort((a, b) => b[0].localeCompare(a[0]))
+          .map(entry => entry[1]);
+        renderLogs();
+      } catch (err) {
+        showMsg("Gabim gjatë ngarkimit të logeve: " + err.message, "error");
+      }
+    }
+
+    function renderLogs() {
+      const filter = document.getElementById("filterInput").value.toLowerCase();
+      const tbody = document.querySelector("#logTable tbody");
+      tbody.innerHTML = "";
+
+      for (const log of allLogs) {
+        const values = [log.user, log.pin, log.ip, log.status].map(v => (v || "").toLowerCase());
+        if (filter && !values.some(v => v.includes(filter))) continue;
+
+        const tr = document.createElement("tr");
+        if (log.status === "success") tr.classList.add("log-success");
+        else if (log.status !== "user_not_found") tr.classList.add("log-error");
+
+        tr.innerHTML = `
+          <td>${new Date(log.time).toLocaleString()}</td>
+          <td>${log.user || "—"}</td>
+          <td>${log.pin || "—"}</td>
+          <td>${log.ip || "—"}</td>
+          <td>${log.status}</td>
+        `;
+        tbody.appendChild(tr);
+      }
+    }
+
+    async function exportAllXLSX() {
+      try {
+        const data = [
+          ["Koha", "Emri", "PIN i përdorur", "IP", "Statusi"],
+          ...allLogs.map(log => [
+            new Date(log.time).toLocaleString(),
+            log.user || "—",
+            log.pin || "—",
+            log.ip || "—",
+            log.status
+          ])
+        ];
+
+        const ws = XLSX.utils.aoa_to_sheet(data);
+        
+        ws['!cols'] = [
+          { wch: 20 },
+          { wch: 20 },
+          { wch: 15 },
+          { wch: 15 },
+          { wch: 20 }
+        ];
+
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Logjet e Aksesit");
+
+        const now = new Date();
+        const timestamp = `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2,'0')}-${now.getDate().toString().padStart(2,'0')}_${now.getHours().toString().padStart(2,'0')}-${now.getMinutes().toString().padStart(2,'0')}`;
+
+        XLSX.writeFile(wb, `Logjet_e_plota_${timestamp}.xlsx`);
+        
+        showMsg("Të gjitha logjet u eksportuan me sukses!", "success");
+      } catch (err) {
+        console.error("Export error:", err);
+        showMsg("Gabim gjatë eksportimit: " + err.message, "error");
+      }
+    }
+
+    function exportFilteredXLSX() {
+      try {
+        const visibleLogs = [];
+        const rows = document.querySelectorAll("#logTable tbody tr");
+        
+        rows.forEach(row => {
+          visibleLogs.push({
+            time: row.cells[0].textContent,
+            user: row.cells[1].textContent,
+            pin: row.cells[2].textContent,
+            ip: row.cells[3].textContent,
+            status: row.cells[4].textContent
+          });
+        });
+
+        if (visibleLogs.length === 0) {
+          showMsg("Nuk ka logje për të eksportuar", "error");
+          return;
+        }
+
+        const data = [
+          ["Koha", "Emri", "PIN i përdorur", "IP", "Statusi"],
+          ...visibleLogs.map(log => [
+            log.time,
+            log.user,
+            log.pin,
+            log.ip,
+            log.status
+          ])
+        ];
+
+        const ws = XLSX.utils.aoa_to_sheet(data);
+        
+        ws['!cols'] = [
+          { wch: 20 },
+          { wch: 20 },
+          { wch: 15 },
+          { wch: 15 },
+          { wch: 20 }
+        ];
+
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Logjet e Filtruara");
+
+        const now = new Date();
+        const timestamp = `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2,'0')}-${now.getDate().toString().padStart(2,'0')}_${now.getHours().toString().padStart(2,'0')}-${now.getMinutes().toString().padStart(2,'0')}`;
+
+        XLSX.writeFile(wb, `Logjet_e_filtruara_${timestamp}.xlsx`);
+        
+        showMsg("Logjet e filtruara u eksportuan me sukses!", "success");
+      } catch (err) {
+        console.error("Export error:", err);
+        showMsg("Gabim gjatë eksportimit: " + err.message, "error");
+      }
+    }
+
+    async function deleteFilteredLogs() {
+      const filter = document.getElementById("filterInput").value.toLowerCase();
+      const logsToDelete = allLogs.filter(log => {
+        const values = [log.user, log.pin, log.ip, log.status].map(v => (v || "").toLowerCase());
+        return filter === "" || values.some(v => v.includes(filter)));
+      });
+
+      if (logsToDelete.length === 0) {
+        showMsg("Nuk ka logje për të fshirë sipas këtij filtri", "error");
+        return;
+      }
+
+      if (!confirm(`Jeni i sigurt që dëshironi të fshini ${logsToDelete.length} logje?`)) {
+        return;
+      }
+
+      try {
+        const res = await makeAuthRequest(`${apiUrl}/logs`, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            logs: logsToDelete,
+            adminPass: prompt("Fjalëkalimi admin për fshirje:")
+          })
+        });
+
+        if (res.status === 401) {
+          sessionStorage.removeItem("authToken");
+          window.location.reload();
+          return;
+        }
+
+        const text = await res.text();
+        showMsg(text, res.ok ? "success" : "error");
+        if (res.ok) loadLogs();
+      } catch (err) {
+        showMsg("Gabim në fshirjen e logjeve: " + err.message, "error");
+      }
+    }
+
+    async function deleteAllLogs() {
+      if (!confirm("Jeni i sigurt që dëshironi të fshini TË GJITHA logjet?")) {
+        return;
+      }
+
+      try {
+        const res = await makeAuthRequest(`${apiUrl}/logs`, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            all: true,
+            adminPass: prompt("Fjalëkalimi admin për fshirje:")
+          })
+        });
+
+        if (res.status === 401) {
+          sessionStorage.removeItem("authToken");
+          window.location.reload();
+          return;
+        }
+
+        const text = await res.text();
+        showMsg(text, res.ok ? "success" : "error");
+        if (res.ok) loadLogs();
+      } catch (err) {
+        showMsg("Gabim në fshirjen e logjeve: " + err.message, "error");
+      }
+    }
+
+    // ==================== TAB MANAGEMENT ====================
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+      document.querySelector(`.tab[onclick="switchTab('${tabName}')"]`).classList.add('active');
+
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+      document.getElementById(`${tabName}-tab`).classList.add('active');
+
+      if (tabName === 'users') fetchUsers();
+      else if (tabName === 'logs') loadLogs();
+    }
+
+    // Initialize logs filter
+    document.getElementById("filterInput").addEventListener("input", renderLogs);
   </script>
 </body>
 </html>
