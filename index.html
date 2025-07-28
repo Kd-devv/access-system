@@ -1,54 +1,12 @@
 <!DOCTYPE html>
 <html lang="sq">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Sistemi i Kontrollit të Aksesit</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
-    body { font-family: sans-serif; max-width: 1000px; margin: auto; padding: 20px; }
-    
-    /* Password protection */
-    #password-protection {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0,0,0,0.8);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 1000;
-    }
-    
-    #password-form {
-      background: white;
-      padding: 30px;
-      border-radius: 8px;
-      text-align: center;
-      box-shadow: 0 0 20px rgba(0,0,0,0.5);
-    }
-    
-    /* Session timeout warning */
-    #session-timeout-warning {
-      display: none;
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: #ff9800;
-      color: white;
-      padding: 10px 15px;
-      border-radius: 5px;
-      z-index: 1000;
-      box-shadow: 0 0 10px rgba(0,0,0,0.2);
-    }
-    
-    /* Keep all your existing styles... */
-    .tabs { display: flex; margin-bottom: 20px; border-bottom: 1px solid #ccc; }
-    .tab { padding: 10px 20px; cursor: pointer; background: #f0f0f0; border: 1px solid #ccc; border-bottom: none; margin-right: 5px; border-radius: 5px 5px 0 0; }
-    .tab.active { background: white; border-bottom: 1px solid white; margin-bottom: -1px; font-weight: bold; }
-    /* ... plus all other existing styles */
+    /* [Keep all your existing CSS styles exactly as they are] */
   </style>
 </head>
 <body>
@@ -59,37 +17,19 @@
       <p>Ju lutem shkruani fjalëkalimin për të hyrë:</p>
       <input type="password" id="access-password" placeholder="Fjalëkalimi" autofocus />
       <button onclick="checkPassword()">Hyr</button>
-      <div id="password-error" style="color:red;margin-top:10px;display:none;"></div>
+      <div id="password-error">Fjalëkalimi i gabuar, provoni përsëri!</div>
     </div>
   </div>
   
-  <!-- Session Timeout Warning -->
-  <div id="session-timeout-warning">
-    Sesioni do të skadojë në <span id="countdown">5:00</span> 
-    <button onclick="resetSession()" style="margin-left:10px;background:#4CAF50;color:white;border:none;padding:2px 8px;border-radius:3px;">Vazhdo</button>
-  </div>
-
   <!-- Protected Content -->
-  <div class="protected-content" style="display:none;">
+  <div class="protected-content">
     <div style="position:absolute;top:20px;right:20px;">
       <button onclick="logout()" style="background:#f44336;color:white;border:none;padding:8px 16px;border-radius:4px;">Dil</button>
     </div>
     
     <h1>🚪 Sistemi i Kontrollit të Aksesit</h1>
     
-    <!-- Keep all your existing tabs and content exactly as-is -->
-    <div class="tabs">
-      <div class="tab active" onclick="switchTab('users')">Menaxhimi i Përdoruesve</div>
-      <div class="tab" onclick="switchTab('logs')">Logjet e Aksesit</div>
-    </div>
-    
-    <div id="users-tab" class="tab-content active">
-      <!-- Your existing user management content -->
-    </div>
-    
-    <div id="logs-tab" class="tab-content">
-      <!-- Your existing logs content -->
-    </div>
+    <!-- [Keep all your existing HTML content exactly as it is] -->
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
@@ -111,10 +51,8 @@
     function resetIdleTimer() {
       clearTimeout(idleTimer);
       clearInterval(countdownInterval);
-      document.getElementById('session-timeout-warning').style.display = 'none';
       
       idleTimer = setTimeout(logout, SESSION_TIMEOUT);
-      setTimeout(showTimeoutWarning, SESSION_TIMEOUT - WARNING_TIME);
       
       // Refresh server-side session if we're logged in
       if (authToken) {
@@ -122,25 +60,6 @@
           headers: { "Authorization": `Bearer ${authToken}` }
         }).catch(() => {});
       }
-    }
-
-    function showTimeoutWarning() {
-      const warningDiv = document.getElementById('session-timeout-warning');
-      warningDiv.style.display = 'block';
-      
-      let secondsLeft = WARNING_TIME / 1000;
-      const countdownEl = document.getElementById('countdown');
-      
-      countdownInterval = setInterval(() => {
-        secondsLeft--;
-        const mins = Math.floor(secondsLeft / 60);
-        const secs = secondsLeft % 60;
-        countdownEl.textContent = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-        
-        if (secondsLeft <= 0) {
-          clearInterval(countdownInterval);
-        }
-      }, 1000);
     }
 
     function resetSession() {
@@ -211,7 +130,7 @@
       const savedToken = sessionStorage.getItem("authToken");
       if (savedToken) {
         try {
-          const response = await fetch(`${apiUrl}/validate`, {
+          const response = await fetch(`${apiUrl}/users`, {
             headers: { "Authorization": `Bearer ${savedToken}` }
           });
           
@@ -231,8 +150,14 @@
       }
     };
 
-    // ==================== KEEP ALL YOUR EXISTING FUNCTIONS ====================
-    // Keep all your existing:
+    // ==================== HELPER FUNCTION ====================
+    async function makeAuthRequest(url, options = {}) {
+      const headers = options.headers || {};
+      headers["Authorization"] = `Bearer ${authToken}`;
+      return fetch(url, { ...options, headers });
+    }
+
+    // [Keep all your existing functions exactly as they are]
     // - switchTab()
     // - fetchUsers()
     // - addTimeSlot()
@@ -241,14 +166,7 @@
     // - deleteUser()
     // - loadLogs()
     // - export functions
-    // - etc.
-    // They don't need any changes!
-
-    // Just make sure all your fetch requests include the auth header:
-    // headers: { 
-    //   "Content-Type": "application/json",
-    //   "Authorization": `Bearer ${authToken}`
-    // }
+    // Just ensure they all use makeAuthRequest() for API calls
   </script>
 </body>
 </html>
