@@ -92,7 +92,7 @@
     <div id="password-form">
       <h2>Hyrje në Sistem</h2>
       <p>Ju lutem shkruani fjalëkalimin për të hyrë:</p>
-      <input type="password" id="access-password" placeholder="Fjalëkalimi" />
+      <input type="password" id="access-password" placeholder="Fjalëkalimi" autofocus />
       <button onclick="checkPassword()">Hyr</button>
       <div id="password-error">Fjalëkalimi i gabuar, provoni përsëri!</div>
     </div>
@@ -196,18 +196,12 @@
         const data = await response.json();
         
         if (response.ok && data.token) {
-          // Correct password - show content
           authToken = data.token;
           document.getElementById("password-protection").style.display = "none";
           document.querySelector(".protected-content").style.display = "block";
-          
-          // Initialize the application
           fetchUsers();
-          
-          // Store authentication in session
           sessionStorage.setItem("authToken", data.token);
         } else {
-          // Wrong password - show error
           errorElement.style.display = "block";
           document.getElementById("access-password").value = "";
           document.getElementById("access-password").focus();
@@ -220,10 +214,12 @@
     
     // Check if already authenticated when page loads
     window.onload = async function() {
+      document.getElementById("access-password").focus();
+      
       const savedToken = sessionStorage.getItem("authToken");
       if (savedToken) {
         try {
-          // Verify the token is still valid
+          // Përdor endpoint-in e duhur për verifikim (/users)
           const testResponse = await fetch(`${apiUrl}/users`, {
             headers: { "Authorization": `Bearer ${savedToken}` }
           });
@@ -233,15 +229,13 @@
             document.getElementById("password-protection").style.display = "none";
             document.querySelector(".protected-content").style.display = "block";
             fetchUsers();
-            return;
+          } else {
+            sessionStorage.removeItem("authToken");
           }
         } catch (err) {
           console.error("Token verification failed:", err);
         }
       }
-      
-      // If we get here, need to show password prompt
-      document.getElementById("access-password").focus();
     };
     
     // Helper function for authenticated requests
@@ -252,35 +246,81 @@
     }
     
     // Allow pressing Enter to submit password
-    document.getElementById("access-password").addEventListener("keyup", function(event) {
+    document.getElementById("access-password").addEventListener("keypress", function(event) {
       if (event.key === "Enter") {
+        event.preventDefault();
         checkPassword();
       }
     });
     
     // Tab switching functionality
     function switchTab(tabName) {
-      // Update tabs
-      document.querySelectorAll('.tab').forEach(tab => {
-        tab.classList.remove('active');
-      });
+      document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
       document.querySelector(`.tab[onclick="switchTab('${tabName}')"]`).classList.add('active');
-      
-      // Update content
-      document.querySelectorAll('.tab-content').forEach(content => {
-        content.classList.remove('active');
-      });
+
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
       document.getElementById(`${tabName}-tab`).classList.add('active');
-      
-      // Refresh data if needed
-      if (tabName === 'users') {
-        fetchUsers();
-      } else if (tabName === 'logs') {
-        loadLogs();
-      }
+
+      if (tabName === 'users') fetchUsers();
+      else if (tabName === 'logs') loadLogs();
     }
     
-    // USER MANAGEMENT FUNCTIONS
+    // USER MANAGEMENT FUNCTIONS (nga 1.index.html që funksionon)
+    async function fetchUsers() {
+      try {
+        const res = await makeAuthRequest(`${apiUrl}/users`);
+        
+        if (res.status === 401) {
+          sessionStorage.removeItem("authToken");
+          window.location.reload();
+          return;
+        }
+        
+        const data = await res.json();
+        const tbody = document.querySelector("#userTable tbody");
+        tbody.innerHTML = "";
+
+        for (const [name, user] of Object.entries(data)) {
+          const tr = document.createElement("tr");
+
+          const tdName = document.createElement("td");
+          tdName.textContent = name;
+          tr.appendChild(tdName);
+
+          const tdPin = document.createElement("td");
+          tdPin.textContent = user.pin || "—";
+          tr.appendChild(tdPin);
+
+          const tdTimeSlots = document.createElement("td");
+          if (user.timeSlots && user.timeSlots.length > 0) {
+            const slotsList = document.createElement("div");
+            user.timeSlots.forEach(slot => {
+              const start = new Date(slot.start);
+              const end = new Date(slot.end);
+              const slotDiv = document.createElement("div");
+              slotDiv.textContent = `${start.toLocaleString()} - ${end.toLocaleString()}`;
+              slotsList.appendChild(slotDiv);
+            });
+            tdTimeSlots.appendChild(slotsList);
+          } else {
+            tdTimeSlots.textContent = "—";
+          }
+          tr.appendChild(tdTimeSlots);
+
+          const tdAction = document.createElement("td");
+          const delBtn = document.createElement("button");
+          delBtn.textContent = "Fshij";
+          delBtn.onclick = () => deleteUser(name);
+          tdAction.appendChild(delBtn);
+          tr.appendChild(tdAction);
+
+          tbody.appendChild(tr);
+        }
+      } catch (err) {
+        showMsg("Gabim gjatë ngarkimit të përdoruesve: " + err.message, "error");
+      }
+    }
+
     function initDateTimePicker(element) {
       return flatpickr(element, {
         enableTime: true,
@@ -413,63 +453,8 @@
       msg.textContent = text;
       msg.className = `msg ${type}`;
     }
-
-    async function fetchUsers() {
-      try {
-        const res = await makeAuthRequest(`${apiUrl}/users`);
-        
-        if (res.status === 401) {
-          sessionStorage.removeItem("authToken");
-          window.location.reload();
-          return;
-        }
-        
-        const data = await res.json();
-        const tbody = document.querySelector("#userTable tbody");
-        tbody.innerHTML = "";
-
-        for (const [name, user] of Object.entries(data)) {
-          const tr = document.createElement("tr");
-
-          const tdName = document.createElement("td");
-          tdName.textContent = name;
-          tr.appendChild(tdName);
-
-          const tdPin = document.createElement("td");
-          tdPin.textContent = user.pin || "—";
-          tr.appendChild(tdPin);
-
-          const tdTimeSlots = document.createElement("td");
-          if (user.timeSlots && user.timeSlots.length > 0) {
-            const slotsList = document.createElement("div");
-            user.timeSlots.forEach(slot => {
-              const start = new Date(slot.start);
-              const end = new Date(slot.end);
-              const slotDiv = document.createElement("div");
-              slotDiv.textContent = `${start.toLocaleString()} - ${end.toLocaleString()}`;
-              slotsList.appendChild(slotDiv);
-            });
-            tdTimeSlots.appendChild(slotsList);
-          } else {
-            tdTimeSlots.textContent = "—";
-          }
-          tr.appendChild(tdTimeSlots);
-
-          const tdAction = document.createElement("td");
-          const delBtn = document.createElement("button");
-          delBtn.textContent = "Fshij";
-          delBtn.onclick = () => deleteUser(name);
-          tdAction.appendChild(delBtn);
-          tr.appendChild(tdAction);
-
-          tbody.appendChild(tr);
-        }
-      } catch (err) {
-        showMsg("Gabim gjatë ngarkimit të përdoruesve: " + err.message, "error");
-      }
-    }
     
-    // LOGS FUNCTIONS
+    // LOGS FUNCTIONS (nga 2.index.html)
     async function loadLogs() {
       try {
         const res = await makeAuthRequest(`${apiUrl}/logs`);
@@ -514,42 +499,35 @@
       }
     }
 
-    // Eksporto të gjitha logjet
     async function exportAllXLSX() {
       try {
-        // Përgatit të dhënat për Excel
         const data = [
-          ["Koha", "Emri", "PIN i përdorur", "IP", "Statusi"], // Headers
+          ["Koha", "Emri", "PIN i përdorur", "IP", "Statusi"],
           ...allLogs.map(log => [
-            new Date(log.time).toLocaleString(), // Formatted date
-            log.user || "—",                     // Name with fallback
-            log.pin || "—",                      // PIN with fallback
-            log.ip || "—",                       // IP with fallback
-            log.status                           // Status
+            new Date(log.time).toLocaleString(),
+            log.user || "—",
+            log.pin || "—",
+            log.ip || "—",
+            log.status
           ])
         ];
 
-        // Create worksheet
         const ws = XLSX.utils.aoa_to_sheet(data);
         
-        // Set column widths
         ws['!cols'] = [
-          { wch: 20 }, // Time column
-          { wch: 20 }, // Name column
-          { wch: 15 }, // PIN column
-          { wch: 15 }, // IP column
-          { wch: 20 }  // Status column
+          { wch: 20 },
+          { wch: 20 },
+          { wch: 15 },
+          { wch: 15 },
+          { wch: 20 }
         ];
 
-        // Create workbook
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Logjet e Aksesit");
 
-        // Generate filename with timestamp
         const now = new Date();
         const timestamp = `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2,'0')}-${now.getDate().toString().padStart(2,'0')}_${now.getHours().toString().padStart(2,'0')}-${now.getMinutes().toString().padStart(2,'0')}`;
 
-        // Export the file
         XLSX.writeFile(wb, `Logjet_e_plota_${timestamp}.xlsx`);
         
         showMsg("Të gjitha logjet u eksportuan me sukses!", "success");
@@ -559,10 +537,8 @@
       }
     }
 
-    // Eksporto vetëm logjet e filtruara
     function exportFilteredXLSX() {
       try {
-        // Merr vetëm rreshtat e shfaqur (të filtruar)
         const visibleLogs = [];
         const rows = document.querySelectorAll("#logTable tbody tr");
         
@@ -581,9 +557,8 @@
           return;
         }
 
-        // Përgatit të dhënat për Excel
         const data = [
-          ["Koha", "Emri", "PIN i përdorur", "IP", "Statusi"], // Headers
+          ["Koha", "Emri", "PIN i përdorur", "IP", "Statusi"],
           ...visibleLogs.map(log => [
             log.time,
             log.user,
@@ -593,27 +568,22 @@
           ])
         ];
 
-        // Create worksheet
         const ws = XLSX.utils.aoa_to_sheet(data);
         
-        // Set column widths
         ws['!cols'] = [
-          { wch: 20 }, // Time column
-          { wch: 20 }, // Name column
-          { wch: 15 }, // PIN column
-          { wch: 15 }, // IP column
-          { wch: 20 }  // Status column
+          { wch: 20 },
+          { wch: 20 },
+          { wch: 15 },
+          { wch: 15 },
+          { wch: 20 }
         ];
 
-        // Create workbook
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Logjet e Filtruara");
 
-        // Generate filename with timestamp
         const now = new Date();
         const timestamp = `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2,'0')}-${now.getDate().toString().padStart(2,'0')}_${now.getHours().toString().padStart(2,'0')}-${now.getMinutes().toString().padStart(2,'0')}`;
 
-        // Export the file
         XLSX.writeFile(wb, `Logjet_e_filtruara_${timestamp}.xlsx`);
         
         showMsg("Logjet e filtruara u eksportuan me sukses!", "success");
