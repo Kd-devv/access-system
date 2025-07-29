@@ -84,6 +84,20 @@
     
     /* Hidden content when not authenticated */
     .protected-content { display: none; }
+
+    /* Session timeout warning */
+    #session-warning {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #ff9800;
+      color: white;
+      padding: 15px;
+      border-radius: 5px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      display: none;
+      z-index: 1000;
+    }
   </style>
 </head>
 <body>
@@ -96,6 +110,11 @@
       <button onclick="checkPassword()">Hyr</button>
       <div id="password-error">Fjalëkalimi i gabuar, provoni përsëri!</div>
     </div>
+  </div>
+
+  <!-- Session Timeout Warning -->
+  <div id="session-warning">
+    Session juaj do të skadojë në <span id="countdown">30:00</span>. Klikoni kudo për të vazhduar.
   </div>
   
   <!-- Protected Content (hidden until authenticated) -->
@@ -178,9 +197,15 @@
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script>
     const apiUrl = "https://porta.armnis76.workers.dev";
+    const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes in milliseconds
+    const WARNING_TIME = 5 * 60 * 1000; // Show warning 5 minutes before timeout
+    
     let allLogs = [];
     let authToken = null;
-    
+    let inactivityTimer;
+    let warningTimer;
+    let countdownInterval;
+
     // Password protection functions
     async function checkPassword() {
       const enteredPassword = document.getElementById("access-password").value;
@@ -201,6 +226,7 @@
           document.querySelector(".protected-content").style.display = "block";
           fetchUsers();
           sessionStorage.setItem("authToken", data.token);
+          initSession();
         } else {
           errorElement.style.display = "block";
           document.getElementById("access-password").value = "";
@@ -212,6 +238,73 @@
       }
     }
     
+    // Session management functions
+    function initSession() {
+      setupActivityListeners();
+      resetInactivityTimer();
+      setupWarningTimer();
+    }
+
+    function setupActivityListeners() {
+      // Clear existing listeners
+      document.removeEventListener('mousemove', resetInactivityTimer);
+      document.removeEventListener('keypress', resetInactivityTimer);
+      document.removeEventListener('click', resetInactivityTimer);
+      document.removeEventListener('scroll', resetInactivityTimer);
+      document.removeEventListener('touchstart', resetInactivityTimer);
+
+      // Add new listeners
+      document.addEventListener('mousemove', resetInactivityTimer);
+      document.addEventListener('keypress', resetInactivityTimer);
+      document.addEventListener('click', resetInactivityTimer);
+      document.addEventListener('scroll', resetInactivityTimer);
+      document.addEventListener('touchstart', resetInactivityTimer);
+    }
+
+    function resetInactivityTimer() {
+      clearTimeout(inactivityTimer);
+      clearTimeout(warningTimer);
+      clearInterval(countdownInterval);
+      
+      document.getElementById("session-warning").style.display = "none";
+      
+      inactivityTimer = setTimeout(logoutDueToInactivity, SESSION_TIMEOUT);
+      warningTimer = setTimeout(showTimeoutWarning, SESSION_TIMEOUT - WARNING_TIME);
+    }
+
+    function setupWarningTimer() {
+      warningTimer = setTimeout(showTimeoutWarning, SESSION_TIMEOUT - WARNING_TIME);
+    }
+
+    function showTimeoutWarning() {
+      const warningElement = document.getElementById("session-warning");
+      warningElement.style.display = "block";
+      
+      let timeLeft = WARNING_TIME / 1000; // Convert to seconds
+      document.getElementById("countdown").textContent = formatTime(timeLeft);
+      
+      countdownInterval = setInterval(() => {
+        timeLeft--;
+        document.getElementById("countdown").textContent = formatTime(timeLeft);
+        
+        if (timeLeft <= 0) {
+          clearInterval(countdownInterval);
+        }
+      }, 1000);
+    }
+
+    function formatTime(seconds) {
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    function logoutDueToInactivity() {
+      sessionStorage.removeItem("authToken");
+      alert("Session ka skaduar për shkak të inaktivitetit (30 minuta)");
+      window.location.reload();
+    }
+
     // Check if already authenticated when page loads
     window.onload = async function() {
       document.getElementById("access-password").focus();
@@ -219,7 +312,6 @@
       const savedToken = sessionStorage.getItem("authToken");
       if (savedToken) {
         try {
-          // Përdor endpoint-in e duhur për verifikim (/users)
           const testResponse = await fetch(`${apiUrl}/users`, {
             headers: { "Authorization": `Bearer ${savedToken}` }
           });
@@ -229,6 +321,7 @@
             document.getElementById("password-protection").style.display = "none";
             document.querySelector(".protected-content").style.display = "block";
             fetchUsers();
+            initSession();
           } else {
             sessionStorage.removeItem("authToken");
           }
@@ -265,7 +358,7 @@
       else if (tabName === 'logs') loadLogs();
     }
     
-    // USER MANAGEMENT FUNCTIONS (nga 1.index.html që funksionon)
+    // USER MANAGEMENT FUNCTIONS
     async function fetchUsers() {
       try {
         const res = await makeAuthRequest(`${apiUrl}/users`);
@@ -393,10 +486,6 @@
         return showMsg("Ju lutem plotësoni të gjitha fushat e detyrueshme", "error");
       }
 
-      if (timeSlots.length === 0) {
-        return showMsg("Ju lutem shtoni të paktën një interval kohor", "error");
-      }
-
       try {
         const res = await makeAuthRequest(`${apiUrl}/users`, {
           method: "POST",
@@ -454,7 +543,7 @@
       msg.className = `msg ${type}`;
     }
     
-    // LOGS FUNCTIONS (nga 2.index.html)
+    // LOGS FUNCTIONS
     async function loadLogs() {
       try {
         const res = await makeAuthRequest(`${apiUrl}/logs`);
