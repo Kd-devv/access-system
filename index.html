@@ -1,62 +1,97 @@
 <!DOCTYPE html>
 <html lang="sq">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Sistemi i Kontrollit të Aksesit</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
-    /* Stilet e mëparshme mbeten të njëjta */
+    body { font-family: Arial, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; }
+    .tabs { display: flex; margin-bottom: 20px; border-bottom: 1px solid #ddd; }
+    .tab { padding: 10px 20px; cursor: pointer; background: #f5f5f5; border: 1px solid #ddd; margin-right: 5px; border-radius: 5px 5px 0 0; }
+    .tab.active { background: #fff; border-bottom: 1px solid #fff; margin-bottom: -1px; font-weight: bold; }
+    .tab-content { display: none; padding: 20px; border: 1px solid #ddd; border-top: none; }
+    .tab-content.active { display: block; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { padding: 10px; border: 1px solid #ddd; text-align: left; }
+    th { background-color: #f5f5f5; }
+    button { padding: 8px 16px; margin: 5px; cursor: pointer; }
+    input, select { padding: 8px; margin: 5px; width: 200px; }
+    .time-slot { display: flex; align-items: center; margin-bottom: 10px; }
+    .time-slot input { width: 180px; margin: 0 10px; }
+    .remove-btn { background-color: #ff6b6b; color: white; border: none; padding: 5px 10px; }
+    .add-btn { background-color: #4CAF50; color: white; border: none; padding: 8px 16px; }
+    #password-protection { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+    #password-form { background: white; padding: 30px; border-radius: 8px; text-align: center; }
+    #session-warning { position: fixed; bottom: 20px; right: 20px; background: #ff9800; color: white; padding: 15px; border-radius: 5px; display: none; }
   </style>
 </head>
 <body>
-  <!-- Password Protection Screen -->
   <div id="password-protection">
     <div id="password-form">
       <h2>Hyrje në Sistem</h2>
-      <p>Ju lutem shkruani fjalëkalimin për të hyrë:</p>
-      <input type="password" id="access-password" placeholder="Fjalëkalimi" autofocus />
+      <input type="password" id="access-password" placeholder="Fjalëkalimi" autofocus>
       <button onclick="checkPassword()">Hyr</button>
-      <div id="password-error">Fjalëkalimi i gabuar, provoni përsëri!</div>
+      <div id="password-error" style="color: red; margin-top: 10px; display: none;"></div>
     </div>
   </div>
 
-  <!-- Session Timeout Warning -->
   <div id="session-warning">
     Session juaj do të skadojë në <span id="countdown">30:00</span>. Klikoni kudo për të vazhduar.
   </div>
-  
-  <!-- Protected Content -->
-  <div class="protected-content">
-    <h1>🚪 Sistemi i Kontrollit të Aksesit</h1>
+
+  <div class="protected-content" style="display: none;">
+    <h1>Sistemi i Kontrollit të Aksesit</h1>
     
     <div class="tabs">
-      <div class="tab active" onclick="switchTab('users')">Menaxhimi i Përdoruesve</div>
-      <div class="tab" onclick="switchTab('logs')">Logjet e Aksesit</div>
+      <div class="tab active" onclick="switchTab('users')">Përdoruesit</div>
+      <div class="tab" onclick="switchTab('logs')">Logjet</div>
     </div>
     
-    <!-- User Management Tab -->
     <div id="users-tab" class="tab-content active">
-      <!-- Përmbajtja e mëparshme mbetet e njëjtë -->
+      <div>
+        <h2>Menaxho Përdorues</h2>
+        <input id="name" placeholder="Emri">
+        <input id="pin" placeholder="PIN" type="password">
+        <input id="adminPass" placeholder="Fjalëkalimi Admin" type="password">
+        
+        <div id="timeSlotsContainer">
+          <!-- Time slots will be added here -->
+        </div>
+        <button class="add-btn" onclick="addTimeSlot()">+ Shto Interval Kohor</button>
+        
+        <button onclick="addUser()">Ruaj Përdorues</button>
+        <div id="user-message" style="margin-top: 10px;"></div>
+      </div>
+      
+      <table id="userTable">
+        <thead>
+          <tr>
+            <th>Emri</th>
+            <th>PIN</th>
+            <th>Intervalet</th>
+            <th>Veprim</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
     </div>
     
-    <!-- Access Logs Tab -->
     <div id="logs-tab" class="tab-content">
-      <div class="controls">
-        <input type="text" id="filterInput" placeholder="Filtro sipas emrit, IP, statusit..." />
-        <button onclick="loadLogs()">🔁 Rifresko</button>
-        <button onclick="exportAllXLSX()">📤 Eksporto të gjitha (Excel)</button>
-        <button onclick="exportFilteredXLSX()">📤 Eksporto të filtruarat (Excel)</button>
-        <button onclick="deleteFilteredLogs()" style="background-color: #f44336;">🗑️ Fshij të filtruarat</button>
-        <button onclick="deleteAllLogs()" style="background-color: #f44336;">🗑️ Fshij të gjitha</button>
+      <div>
+        <h2>Logjet e Aksesit</h2>
+        <input id="filterInput" placeholder="Filtro...">
+        <button onclick="loadLogs()">Rifresko</button>
+        <button onclick="exportAllXLSX()">Eksporto të gjitha</button>
+        <button onclick="deleteAllLogs()" style="background-color: #f44336;">Fshi të gjitha</button>
       </div>
-
+      
       <table id="logTable">
         <thead>
           <tr>
             <th>Koha</th>
             <th>Emri</th>
-            <th>PIN i përdorur</th>
+            <th>PIN</th>
             <th>IP</th>
             <th>Statusi</th>
           </tr>
@@ -68,105 +103,262 @@
 
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script>
-    // Konfigurimi
     const apiUrl = "https://porta.armnis76.workers.dev";
-    const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minuta
-    const WARNING_TIME = 5 * 60 * 1000; // Paralajmërim 5 minuta para skadimit
-    
-    let allLogs = [];
     let authToken = null;
-    let inactivityTimer;
-    let warningTimer;
-    let countdownInterval;
+    let allLogs = [];
 
-    // Funksione për fshirjen e logjeve (të përditësuara)
-    async function deleteFilteredLogs() {
-      const filter = document.getElementById("filterInput").value.toLowerCase();
-      const logsToDelete = allLogs.filter(log => {
-        const values = [log.user, log.pin, log.ip, log.status].map(v => (v || "").toLowerCase());
-        return filter === "" || values.some(v => v.includes(filter));
-      });
+    // Funksionet bazë
+    async function checkPassword() {
+      const password = document.getElementById("access-password").value;
+      const errorElement = document.getElementById("password-error");
+      
+      try {
+        const response = await fetch(`${apiUrl}/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ password })
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          authToken = data.token;
+          document.getElementById("password-protection").style.display = "none";
+          document.querySelector(".protected-content").style.display = "block";
+          sessionStorage.setItem("authToken", authToken);
+          fetchUsers();
+          startSessionTimer();
+        } else {
+          errorElement.textContent = "Fjalëkalimi i gabuar";
+          errorElement.style.display = "block";
+        }
+      } catch (err) {
+        errorElement.textContent = "Gabim në lidhje";
+        errorElement.style.display = "block";
+      }
+    }
 
-      if (logsToDelete.length === 0) {
-        showMsg("Nuk ka logje për të fshirë sipas këtij filtri", "error");
+    async function makeAuthRequest(url, options = {}) {
+      const headers = options.headers || {};
+      headers["Authorization"] = `Bearer ${authToken}`;
+      return fetch(url, { ...options, headers });
+    }
+
+    // Funksione për përdoruesit
+    function addTimeSlot() {
+      const container = document.getElementById("timeSlotsContainer");
+      const slotDiv = document.createElement("div");
+      slotDiv.className = "time-slot";
+      
+      const startInput = document.createElement("input");
+      startInput.placeholder = "Fillimi";
+      
+      const endInput = document.createElement("input");
+      endInput.placeholder = "Mbarimi";
+      
+      const removeBtn = document.createElement("button");
+      removeBtn.className = "remove-btn";
+      removeBtn.textContent = "Fshi";
+      removeBtn.onclick = () => container.removeChild(slotDiv);
+      
+      slotDiv.appendChild(startInput);
+      slotDiv.appendChild(document.createTextNode(" deri "));
+      slotDiv.appendChild(endInput);
+      slotDiv.appendChild(removeBtn);
+      
+      container.appendChild(slotDiv);
+      
+      flatpickr(startInput, { enableTime: true, dateFormat: "Y-m-d H:i" });
+      flatpickr(endInput, { enableTime: true, dateFormat: "Y-m-d H:i" });
+    }
+
+    async function addUser() {
+      const name = document.getElementById("name").value;
+      const pin = document.getElementById("pin").value;
+      const adminPass = document.getElementById("adminPass").value;
+      
+      if (!name || !pin || !adminPass) {
+        showUserMessage("Plotëso të gjitha fushat", "error");
         return;
       }
 
-      if (!confirm(`Jeni i sigurt që dëshironi të fshini ${logsToDelete.length} logje?`)) {
-        return;
+      try {
+        const response = await makeAuthRequest(`${apiUrl}/users`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, pin, adminPass })
+        });
+        
+        const result = await response.json();
+        showUserMessage(result.message || result.error, response.ok ? "success" : "error");
+        if (response.ok) fetchUsers();
+      } catch (err) {
+        showUserMessage("Gabim në rrjet", "error");
       }
+    }
 
-      const adminPass = prompt("Fjalëkalimi admin për fshirje:");
+    async function fetchUsers() {
+      try {
+        const response = await makeAuthRequest(`${apiUrl}/users`);
+        const users = await response.json();
+        
+        const tbody = document.querySelector("#userTable tbody");
+        tbody.innerHTML = "";
+        
+        for (const [name, data] of Object.entries(users)) {
+          const row = document.createElement("tr");
+          
+          row.innerHTML = `
+            <td>${name}</td>
+            <td>${data.pin}</td>
+            <td>${data.timeSlots?.length || 0} intervale</td>
+            <td><button onclick="deleteUser('${name}')">Fshi</button></td>
+          `;
+          
+          tbody.appendChild(row);
+        }
+      } catch (err) {
+        showUserMessage("Gabim në marrjen e përdoruesve", "error");
+      }
+    }
+
+    async function deleteUser(name) {
+      const adminPass = prompt("Fjalëkalimi admin:");
       if (!adminPass) return;
 
       try {
-        const res = await makeAuthRequest(`${apiUrl}/logs`, {
+        const response = await makeAuthRequest(`${apiUrl}/users`, {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            logs: logsToDelete,
-            adminPass
-          })
+          body: JSON.stringify({ name, adminPass })
         });
-
-        const data = await res.json();
         
-        if (res.status === 403) {
-          showMsg("Fjalëkalimi admin është i gabuar", "error");
-          return;
-        }
-
-        if (!res.ok) {
-          showMsg(data.error || "Gabim në fshirjen e logjeve", "error");
-          return;
-        }
-
-        showMsg(data.message, "success");
-        loadLogs();
+        const result = await response.json();
+        showUserMessage(result.message || result.error, response.ok ? "success" : "error");
+        if (response.ok) fetchUsers();
       } catch (err) {
-        showMsg("Gabim në fshirjen e logjeve: " + err.message, "error");
+        showUserMessage("Gabim në fshirjen e përdoruesit", "error");
+      }
+    }
+
+    // Funksione për logjet
+    async function loadLogs() {
+      try {
+        const response = await makeAuthRequest(`${apiUrl}/logs`);
+        allLogs = await response.json();
+        renderLogs();
+      } catch (err) {
+        console.error("Gabim në marrjen e logjeve:", err);
+      }
+    }
+
+    function renderLogs() {
+      const filter = document.getElementById("filterInput").value.toLowerCase();
+      const tbody = document.querySelector("#logTable tbody");
+      tbody.innerHTML = "";
+
+      for (const log of allLogs) {
+        if (filter && !JSON.stringify(log).toLowerCase().includes(filter)) {
+          continue;
+        }
+
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${new Date(log.time).toLocaleString()}</td>
+          <td>${log.user || "-"}</td>
+          <td>${log.pin || "-"}</td>
+          <td>${log.ip || "-"}</td>
+          <td>${log.status}</td>
+        `;
+        
+        if (log.status === "success") {
+          row.style.backgroundColor = "#e8f5e9";
+        } else {
+          row.style.backgroundColor = "#ffebee";
+        }
+        
+        tbody.appendChild(row);
       }
     }
 
     async function deleteAllLogs() {
-      if (!confirm("Jeni i sigurt që dëshironi të fshini TË GJITHA logjet?")) {
-        return;
-      }
-
-      const adminPass = prompt("Fjalëkalimi admin për fshirje:");
+      if (!confirm("Jeni i sigurt që dëshironi të fshini të gjitha logjet?")) return;
+      
+      const adminPass = prompt("Fjalëkalimi admin:");
       if (!adminPass) return;
 
       try {
-        const res = await makeAuthRequest(`${apiUrl}/logs`, {
+        const response = await makeAuthRequest(`${apiUrl}/logs`, {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            all: true,
-            adminPass
-          })
+          body: JSON.stringify({ all: true, adminPass })
         });
-
-        const data = await res.json();
         
-        if (res.status === 403) {
-          showMsg("Fjalëkalimi admin është i gabuar", "error");
-          return;
-        }
-
-        if (!res.ok) {
-          showMsg(data.error || "Gabim në fshirjen e logjeve", "error");
-          return;
-        }
-
-        showMsg(data.message, "success");
-        loadLogs();
+        const result = await response.json();
+        alert(result.message || result.error);
+        if (response.ok) loadLogs();
       } catch (err) {
-        showMsg("Gabim në fshirjen e logjeve: " + err.message, "error");
+        console.error("Gabim në fshirjen e logjeve:", err);
       }
     }
 
-    // Pjesa tjetër e kodit mbetet e njëjtë si më parë
-    // ...
+    function exportAllXLSX() {
+      const data = [
+        ["Koha", "Emri", "PIN", "IP", "Statusi"],
+        ...allLogs.map(log => [
+          new Date(log.time).toLocaleString(),
+          log.user || "-",
+          log.pin || "-",
+          log.ip || "-",
+          log.status
+        ])
+      ];
+
+      const ws = XLSX.utils.aoa_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Logjet");
+      
+      const date = new Date().toISOString().slice(0, 10);
+      XLSX.writeFile(wb, `Logjet_${date}.xlsx`);
+    }
+
+    // Funksione ndihmëse
+    function showUserMessage(message, type) {
+      const element = document.getElementById("user-message");
+      element.textContent = message;
+      element.style.color = type === "success" ? "green" : "red";
+    }
+
+    function switchTab(tabName) {
+      document.querySelectorAll(".tab").forEach(tab => tab.classList.remove("active"));
+      document.querySelectorAll(".tab-content").forEach(content => content.classList.remove("active"));
+      
+      document.querySelector(`.tab[onclick="switchTab('${tabName}')"]`).classList.add("active");
+      document.getElementById(`${tabName}-tab`).classList.add("active");
+      
+      if (tabName === "users") fetchUsers();
+      else if (tabName === "logs") loadLogs();
+    }
+
+    function startSessionTimer() {
+      // Implementimi i timer-it të sessionit
+    }
+
+    // Initialize
+    document.addEventListener("DOMContentLoaded", () => {
+      document.getElementById("access-password").addEventListener("keypress", (e) => {
+        if (e.key === "Enter") checkPassword();
+      });
+      
+      document.getElementById("filterInput").addEventListener("input", renderLogs);
+      
+      const savedToken = sessionStorage.getItem("authToken");
+      if (savedToken) {
+        authToken = savedToken;
+        document.getElementById("password-protection").style.display = "none";
+        document.querySelector(".protected-content").style.display = "block";
+        fetchUsers();
+      }
+    });
   </script>
 </body>
 </html>
