@@ -121,7 +121,7 @@
       accessTimesDiv.innerHTML = "<p>Po ngarkohen intervalet kohore...</p>";
 
       try {
-        const res = await fetch(`https://porta.armnis76.workers.dev/user?name=${encodeURIComponent(name)}`);
+        const res = await fetch(`https://porta.armnis76.workers.dev/user?name=${encodeURIComponent(name)}");
         
         if (!res.ok) {
           throw new Error(await res.text());
